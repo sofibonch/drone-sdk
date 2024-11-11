@@ -1,0 +1,12 @@
+# drone-sdk/CMakeLists.txt
+
+cmake_minimum_required(VERSION 3.10)
+
+project(drone-sdk-proj)
+
+# Include subdirectories
+add_subdirectory(drone-app-sdk)
+add_subdirectory(hw-sdk-mock/flight-controller)
+add_subdirectory(hw-sdk-mock/gps)
+add_subdirectory(hw-sdk-mock/link)
+
