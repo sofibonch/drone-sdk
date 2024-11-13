@@ -33,11 +33,11 @@ namespace hw_sdk_mock
             getRandomDouble(0.0, 10000.0)   // Altitude range in meters
         };
 
-        std::cout << std::fixed << std::setprecision(6)
-                  << "GPS Location - Latitude: " << location.latitude
-                  << ", Longitude: " << location.longitude
-                  << ", Altitude: " << location.altitude << " meters\n";
-
+        //std::cout << std::fixed << std::setprecision(6)
+        //          << "GPS Location - Latitude: " << location.latitude
+        //          << ", Longitude: " << location.longitude
+        //          << ", Altitude: " << location.altitude << " meters\n";
+//
         return location;
     }
 

@@ -8,7 +8,7 @@ void gpsUpdateCallback(const hw_sdk_mock::Gps::Location& location, hw_sdk_mock::
     std::cout << "Received GPS update:" << std::endl;
     std::cout << "Latitude: " << location.latitude << ", "
               << "Longitude: " << location.longitude << ", "
-              << "Altitude: " << location.altitude << std::endl;
+              << "blipAltitude: " << location.altitude << std::endl;
 
     std::cout << "Signal Quality: ";
     switch (signalQuality) {
