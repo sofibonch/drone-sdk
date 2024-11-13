@@ -3,61 +3,95 @@
 
 #include <boost/sml.hpp>
 #include <iostream>
+#include "flight_state_machine.hpp"  // Include the FlightStateMachine header
 #include "gps/gps.hpp"
 #include "link/link.hpp"
 #include "icd.hpp"
 
-namespace sml = boost::sml;
+namespace safetystatemachine {
 
+// Events
 struct GpsSignal {
-    drone_sdk::SignalQuality quality;  // Updated to use drone_sdk::SignalQuality
+    drone_sdk::SignalQuality quality;
 };
 
 struct LinkSignal {
-    drone_sdk::SignalQuality quality;  // Updated to use drone_sdk::SignalQuality
+    drone_sdk::SignalQuality quality;
 };
 
-class SafetyStateMachine {
-public:
-    auto operator()() const {
-        using namespace sml;
+// Safety_SM Struct that represents the state machine
+struct Safety_SM {
+    // Define states for the safety state machine
+    struct GpsHealthy {};
+    struct GpsNotHealthy {};
+    struct ConnectionConnected {};
+    struct ConnectionDisconnected {};
 
-        // Define states
-        const auto gpsHealthy = state<class GpsHealthy>;
-        const auto gpsNotHealthy = state<class GpsNotHealthy>;
-        const auto connectionConnected = state<class Connected>;
-        const auto connectionDisconnected = state<class Disconnected>;
+    // The pointer to FlightStateMachine that will be used to trigger emergency land
+    flightstatemachine::FlightStateMachine* flightStateMachine;
 
-        // Define state machine transitions and actions
+    // State machine logic (transitions, actions, etc.)
+    auto operator()() {
+        using namespace boost::sml;
+
         return make_transition_table(
-            // GPS signal quality transitions
-            *gpsHealthy + event<GpsSignal> [([](const GpsSignal &gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
-                std::cout << "Transitioned to GPS Not Healthy" << std::endl;
-            } = gpsNotHealthy,
+            // Transition when GPS signal is lost (quality is NO_SIGNAL)
+            *state<GpsHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [this] {
+                std::cout << "GPS signal lost - Triggering Emergency Land\n";
+                // Call emergency landing in the FlightStateMachine
+                if (flightStateMachine) {
+                    flightStateMachine->triggerSafetyViolation();
+                }
+            } = state<GpsNotHealthy>,
 
-            gpsNotHealthy + event<GpsSignal> [([](const GpsSignal &gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
-                std::cout << "Transitioned to GPS Healthy" << std::endl;
-            } = gpsHealthy,
+            // Transition when GPS signal is restored
+            state<GpsNotHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
+                std::cout << "GPS signal restored\n";
+            } = state<GpsHealthy>,
 
-            // Connection status transitions
-            *connectionConnected + event<LinkSignal> [([](const LinkSignal &ls) { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
-                std::cout << "Transitioned to Connection Disconnected" << std::endl;
-            } = connectionDisconnected,
+            // Transition when link signal is lost
+            *state<ConnectionConnected> + event<LinkSignal> [([](const LinkSignal& ls) { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [this] {
+                std::cout << "Link signal lost - Triggering Emergency Land\n";
+                // Call emergency landing in the FlightStateMachine
+                if (flightStateMachine) {
+                    flightStateMachine->triggerSafetyViolation();
+                }
+            } = state<ConnectionDisconnected>,
 
-            connectionDisconnected + event<LinkSignal> [([](const LinkSignal &ls) { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
-                std::cout << "Transitioned to Connection Connected" << std::endl;
-            } = connectionConnected,
-
-            // Emergency actions
-            gpsNotHealthy + event<GpsSignal> / [] {
-                std::cout << "Emergency: Triggering Emergency Landing due to GPS failure" << std::endl;
-            },
-
-            connectionDisconnected + event<LinkSignal> / [] {
-                std::cout << "Emergency: Triggering Return Home due to disconnection" << std::endl;
-            }
+            // Transition when link signal is restored
+            state<ConnectionDisconnected> + event<LinkSignal> [([](const LinkSignal& ls) { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
+                std::cout << "Link signal restored\n";
+            } = state<ConnectionConnected>
         );
     }
 };
+
+// SafetyStateMachine class encapsulates the Safety_SM state machine
+class SafetyStateMachine {
+public:
+    // Constructor initializing the state machine and passing a pointer to FlightStateMachine
+    explicit SafetyStateMachine(std::shared_ptr<flightstatemachine::FlightStateMachine> flightStateMachine)
+        : m_SM(), m_flightStateMachine(flightStateMachine.get()) {
+        // Set the FlightStateMachine pointer inside the state machine
+       
+    }
+
+    // Public function to trigger the GPS signal event
+    void handleGpsSignal(const GpsSignal& gpsSignal) {
+        m_SM.process_event(gpsSignal);
+    }
+
+    // Public function to trigger the Link signal event
+    void handleLinkSignal(const LinkSignal& linkSignal) {
+        m_SM.process_event(linkSignal);
+    }
+
+private:
+    // The state machine instance
+    boost::sml::sm<Safety_SM> m_SM;
+    flightstatemachine::FlightStateMachine* m_flightStateMachine;  // Pointer to the FlightStateMachine
+};
+
+} // namespace safetystatemachine
 
 #endif // SAFETY_STATE_MACHINE_HPP
