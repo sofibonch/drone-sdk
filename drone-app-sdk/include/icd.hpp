@@ -25,7 +25,15 @@ namespace drone_sdk {
         GOOD,
         EXCELLENT
     };
-
+    
+    enum class FlightControllerStatus {
+        SUCCESS = 0,
+        CONNECTION_ERROR,
+        HARDWARE_ERROR,
+        INVALID_COMMAND,
+        UNKNOWN_ERROR
+    };
+    
     struct GpsCallback {
         using Type = void(*)(Location, SignalQuality);
     };

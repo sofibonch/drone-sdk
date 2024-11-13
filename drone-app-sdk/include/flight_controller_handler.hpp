@@ -1,76 +1,61 @@
-#pragma once
+#ifndef FLIGHT_CONTROLLER_HANDLER_HPP
+#define FLIGHT_CONTROLLER_HANDLER_HPP
 
-#include "flight_controller.hpp"  // Assuming this header is where hw_sdk_mock::FlightController is defined
-#include <iostream>
-#include <functional>
+#include "flight-controller/flight-controller.hpp"    // For hw_sdk_mock::FlightController
+#include "icd.hpp"                  // For drone_sdk::FlightControllerStatus
 
 class FlightControllerHandler {
 public:
-    FlightControllerHandler()
-        : m_flightController(std::make_unique<hw_sdk_mock::FlightController>()) {}
+    FlightControllerHandler() = default;
 
     // Command to arm the flight controller
-    bool arm() {
-        return executeCommand([this]() { return m_flightController->arm(); }, "Arm");
+    drone_sdk::FlightControllerStatus arm() {
+        return convertResponse(m_flightController.arm());
     }
 
     // Command to disarm the flight controller
-    bool disarm() {
-        return executeCommand([this]() { return m_flightController->disarm(); }, "Disarm");
+    drone_sdk::FlightControllerStatus disarm() {
+        return convertResponse(m_flightController.disarm());
     }
 
     // Command to take off
-    bool takeOff() {
-        return executeCommand([this]() { return m_flightController->takeOff(); }, "Take Off");
+    drone_sdk::FlightControllerStatus takeOff() {
+        return convertResponse(m_flightController.takeOff());
     }
 
     // Command to land
-    bool land() {
-        return executeCommand([this]() { return m_flightController->land(); }, "Land");
+    drone_sdk::FlightControllerStatus land() {
+        return convertResponse(m_flightController.land());
     }
 
     // Command to return to home location
-    bool goHome() {
-        return executeCommand([this]() { return m_flightController->goHome(); }, "Go Home");
+    drone_sdk::FlightControllerStatus goHome() {
+        return convertResponse(m_flightController.goHome());
     }
 
     // Command to go to a specific location
-    bool goTo(double latitude, double longitude, double altitude) {
-        return executeCommand([this, latitude, longitude, altitude]() {
-            return m_flightController->goTo(latitude, longitude, altitude);
-        }, "Go To Location");
+    drone_sdk::FlightControllerStatus goTo(double latitude, double longitude, double altitude) {
+        return convertResponse(m_flightController.goTo(latitude, longitude, altitude));
     }
 
 private:
-    std::unique_ptr<hw_sdk_mock::FlightController> m_flightController;
+    hw_sdk_mock::FlightController m_flightController; // Directly instantiated
 
-    // Helper function to execute commands and handle response
-    bool executeCommand(const std::function<hw_sdk_mock::FlightController::ResponseCode()>& command, const std::string& commandName) {
-        hw_sdk_mock::FlightController::ResponseCode response = command();
-        
+    // Helper function to convert hw_sdk_mock::FlightController::ResponseCode to drone_sdk::FlightControllerStatus
+    drone_sdk::FlightControllerStatus convertResponse(hw_sdk_mock::FlightController::ResponseCode response) const {
         switch (response) {
             case hw_sdk_mock::FlightController::ResponseCode::SUCCESS:
-                std::cout << commandName << " command succeeded.\n";
-                return true;
-
+                return drone_sdk::FlightControllerStatus::SUCCESS;
             case hw_sdk_mock::FlightController::ResponseCode::CONNECTION_ERROR:
-                std::cerr << commandName << " failed: Connection error.\n";
-                break;
-
+                return drone_sdk::FlightControllerStatus::CONNECTION_ERROR;
             case hw_sdk_mock::FlightController::ResponseCode::HARDWARE_ERROR:
-                std::cerr << commandName << " failed: Hardware error.\n";
-                break;
-
+                return drone_sdk::FlightControllerStatus::HARDWARE_ERROR;
             case hw_sdk_mock::FlightController::ResponseCode::INVALID_COMMAND:
-                std::cerr << commandName << " failed: Invalid command.\n";
-                break;
-
+                return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
             default:
-                std::cerr << commandName << " failed: Unknown error.\n";
-                break;
+                return drone_sdk::FlightControllerStatus::UNKNOWN_ERROR;
         }
-        
-        return false;
     }
 };
 
+#endif
