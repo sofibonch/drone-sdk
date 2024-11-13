@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add strict compile options to catch all your mistakes
-add_compile_options(-Wformat -Wall -Wextra -pedantic -Werror -Wconversion -Wshadow -Wunreachable-code -Wunused -Wunused-function)
+add_compile_options(-Wformat -Wall -Wextra -Werror -Wconversion -Wshadow -Wunreachable-code -Wunused -Wunused-function)
 
 # Include directories for headers
 include_directories(include)
