@@ -53,4 +53,4 @@ private:
     std::thread m_pollingThread;  // Thread for polling
 };
 
-#endif
+#endif // HW_MONITOR_HPP
