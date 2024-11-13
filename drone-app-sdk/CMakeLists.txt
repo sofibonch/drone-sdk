@@ -35,7 +35,7 @@ target_include_directories(drone-app-sdk PRIVATE
 message(STATUS "External include directory: ${PROJECT_SOURCE_DIR}/external")
 message(STATUS "Boost include directories: ${Boost_INCLUDE_DIRS}")
 # Define the executable target for the Drone SDK demo
-add_executable(drone-demo tests/drone_demo.cpp src/drone_sdk.cpp)
+add_executable(drone-demo tests/drone_demo.cpp src/drone_sdk.cpp src/drone_controller.cpp)
 
 # Include directories for drone-demo (including drone-sdk headers and Boost)
 target_include_directories(drone-demo PRIVATE 
@@ -43,7 +43,6 @@ target_include_directories(drone-demo PRIVATE
     ${PROJECT_SOURCE_DIR}/flight-controller/include
     ${PROJECT_SOURCE_DIR}/gps/include
     ${PROJECT_SOURCE_DIR}/link/include
-    ${PROJECT_SOURCE_DIR}/external  
     ${Boost_INCLUDE_DIRS}  # Include Boost headers
 )
 
@@ -52,7 +51,6 @@ target_link_libraries(drone-demo PRIVATE
     flight-controller 
     gps 
     link
-    # Boost::sml
 )
 
 # Define the executable target for the GPS handler demo

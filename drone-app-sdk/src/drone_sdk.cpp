@@ -1,46 +1,37 @@
 #include "drone_sdk.hpp"
+#include "drone_controller.hpp"
 #include <iostream>
 
-DroneSDK::DroneSDK() 
-    : m_hwMonitor(), m_stateMachineManager(m_hwMonitor) {
-    // Initialize the state machine manager which will manage the safety state machine
-    m_hwMonitor.start();
-    m_stateMachineManager.start();
-}
+DroneSDK::DroneSDK()
+    : m_DroneController(std::make_unique<DroneController>()) {}
+
+DroneSDK::DroneSDK(DroneSDK&&) noexcept = default;
+DroneSDK& DroneSDK::operator=(DroneSDK&&) noexcept = default;
 
 DroneSDK::~DroneSDK() {
-    stop();  // Ensure to stop hardware monitor and threads on destruction
+    // Cleanup is handled automatically by the unique_ptr
 }
 
-void DroneSDK::start() {
-    // Start the hardware monitor (polling GPS, Link, etc.)
-    m_hwMonitor.start();
-}
-
-void DroneSDK::stop() {
-    // Stop the hardware monitor to cleanly stop all threads
-    m_hwMonitor.stop();
-}
-
-void DroneSDK::subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback) {
-    // Subscribe to GPS updates from the HardwareMonitor
-    m_hwMonitor.subscribeToGpsUpdates([this, gpsCallback](auto location, auto signalQuality) {
-        // Call the provided callback function with the ICD Location and SignalQuality
-        gpsCallback(location, signalQuality);
-    });
-}
-
-void DroneSDK::subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback) {
-    // Subscribe to Link updates from the HardwareMonitor
-    m_hwMonitor.subscribeToLinkUpdates([this, linkCallback](auto signalQuality) {
-        // Call the provided callback function with the ICD SignalQuality
-        linkCallback(signalQuality);
-    });
-}
 void DroneSDK::emergencyLand() {
-    std::cout << "Emergency Landing Triggered" << std::endl;
+    // m_DroneController->emergencyLand(); // Uncomment if needed
 }
 
 void DroneSDK::returnHome() {
-    std::cout << "Return Home Triggered" << std::endl;
+    m_DroneController->returnHome();
+}
+
+void DroneSDK::subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback) {
+    m_DroneController->getHardwareMonitor().subscribeToGpsUpdates(gpsCallback);
+}
+
+void DroneSDK::subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback) {
+    m_DroneController->getHardwareMonitor().subscribeToLinkUpdates(linkCallback);
+}
+
+void DroneSDK::start() {
+    // Initialize components and start the hardware monitor and state machine manager
+}
+
+void DroneSDK::stop() {
+    m_DroneController->getHardwareMonitor().stop();  // Stop monitoring and threads
 }
