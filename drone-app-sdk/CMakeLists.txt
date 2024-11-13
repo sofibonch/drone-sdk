@@ -24,16 +24,28 @@ target_include_directories(drone-app-sdk PRIVATE
     ${PROJECT_SOURCE_DIR}/flight-controller/include
     ${PROJECT_SOURCE_DIR}/gps/include
     ${PROJECT_SOURCE_DIR}/link/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include  # Include drone-app-sdk headers
     ${Boost_INCLUDE_DIRS}  # Include Boost headers
 )
 
 # Define the executable target for the GPS handler demo
-add_executable(drone-gps-handler-demo tests/gps_handler_demo.cpp)
+add_executable(gps-handler-demo tests/gps_handler_demo.cpp)
 
 # Include dirs for GPS handler demo and link gps
-target_include_directories(drone-gps-handler-demo PRIVATE 
+target_include_directories(gps-handler-demo PRIVATE 
     ${PROJECT_SOURCE_DIR}/gps/include
     ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
     ${Boost_INCLUDE_DIRS}  # Include Boost headers
 )
-target_link_libraries(drone-gps-handler-demo PRIVATE gps)
+target_link_libraries(gps-handler-demo PRIVATE gps)
+
+# Define the executable target for the HardwareMonitor demo
+add_executable(hw-monitor-demo tests/hw_monitor_demo.cpp)
+
+# Include directories and link libraries for hw-monitor-demo
+target_include_directories(hw-monitor-demo PRIVATE 
+    ${PROJECT_SOURCE_DIR}/gps/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
+    ${Boost_INCLUDE_DIRS}  # Include Boost headers
+)
+target_link_libraries(hw-monitor-demo PRIVATE gps)

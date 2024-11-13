@@ -1,3 +1,6 @@
+#ifndef GPS_HANDLER_HPP
+#define GPS_HANDLER_HPP
+
 #include <boost/signals2.hpp>
 #include <thread>
 #include <chrono>
@@ -5,13 +8,11 @@
 
 class GpsHandler {
 public:
-    // Default constructor and destructor
     explicit GpsHandler() = default;
     ~GpsHandler() = default;
     
     using GpsUpdateSignal = boost::signals2::signal<void(hw_sdk_mock::Gps::Location, hw_sdk_mock::Gps::SignalQuality)>;
 
-    // Registers a callback for GPS updates
     boost::signals2::connection subscribe(const GpsUpdateSignal::slot_type& slot) {
         return m_gpsUpdateSignal.connect(slot);
     }
@@ -26,3 +27,5 @@ private:
     hw_sdk_mock::Gps m_gpsDevice;
     GpsUpdateSignal m_gpsUpdateSignal;
 };
+
+#endif // GPS_HANDLER_HPP
