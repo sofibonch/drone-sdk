@@ -1,13 +1,12 @@
-// icd.hpp
 #ifndef ICD_HPP
 #define ICD_HPP
 
 namespace drone_sdk {
 
     enum class LocationField {
-        Latitude,
-        Longitude,
-        Altitude
+        LATITUDE,
+        LONGITUDE,
+        ALTITUDE
     };
 
     struct Location {
@@ -18,12 +17,13 @@ namespace drone_sdk {
         double getField(LocationField field) const;
     };
 
-    enum class SignalQuality {
-        Excellent = 4,
-        Good = 3,
-        Fair = 2,
-        Poor = 1,
-        NoSignal = 0
+    enum class SignalQuality
+    {
+        NO_SIGNAL = 0,
+        POOR,
+        FAIR,
+        GOOD,
+        EXCELLENT
     };
 
     struct GpsCallback {

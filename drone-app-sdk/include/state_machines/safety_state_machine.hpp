@@ -31,20 +31,20 @@ public:
         // Define state machine transitions and actions
         return make_transition_table(
             // GPS signal quality transitions
-            *gpsHealthy + event<GpsSignal> [([](const GpsSignal &gs) { return gs.quality == drone_sdk::SignalQuality::NoSignal; })] / [] {
+            *gpsHealthy + event<GpsSignal> [([](const GpsSignal &gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
                 std::cout << "Transitioned to GPS Not Healthy" << std::endl;
             } = gpsNotHealthy,
 
-            gpsNotHealthy + event<GpsSignal> [([](const GpsSignal &gs) { return gs.quality != drone_sdk::SignalQuality::NoSignal; })] / [] {
+            gpsNotHealthy + event<GpsSignal> [([](const GpsSignal &gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
                 std::cout << "Transitioned to GPS Healthy" << std::endl;
             } = gpsHealthy,
 
             // Connection status transitions
-            *connectionConnected + event<LinkSignal> [([](const LinkSignal &ls) { return ls.quality == drone_sdk::SignalQuality::NoSignal; })] / [] {
+            *connectionConnected + event<LinkSignal> [([](const LinkSignal &ls) { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
                 std::cout << "Transitioned to Connection Disconnected" << std::endl;
             } = connectionDisconnected,
 
-            connectionDisconnected + event<LinkSignal> [([](const LinkSignal &ls) { return ls.quality != drone_sdk::SignalQuality::NoSignal; })] / [] {
+            connectionDisconnected + event<LinkSignal> [([](const LinkSignal &ls) { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
                 std::cout << "Transitioned to Connection Connected" << std::endl;
             } = connectionConnected,
 
