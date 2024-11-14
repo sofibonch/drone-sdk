@@ -41,10 +41,16 @@ public:
             }
         });
 
-        // Subscribe to state changes from FlightStateMachine
-        m_flightSM->stateChanged.connect([this](const std::string& newState) {
-            std::cout << "FlightStateMachine state changed to: " << newState << std::endl;
-        });
+    }
+
+    // Public function to subscribe to GPS state changes
+    void subscribeToGpsState(std::function<void(drone_sdk::safetyState)> callback) {
+        m_safetySM.subscribeToGpsState(callback);
+    }
+
+    // Public function to subscribe to Link state changes
+    void subscribeToLinkState(std::function<void(drone_sdk::safetyState)> callback) {
+        m_safetySM.subscribeToLinkState(callback);
     }
 
     void start() {

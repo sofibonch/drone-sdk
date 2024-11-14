@@ -79,47 +79,66 @@ struct Flight_SM {
 
 class FlightStateMachine {
 public:
+    // Enum for the current flight state
+    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
+
     // Constructor initializing the state machine
     FlightStateMachine()
         : m_SM() {}
 
     // Define signal to notify subscribers about state changes
-    boost::signals2::signal<void(std::string)> stateChanged;
+    boost::signals2::signal<void(drone_sdk::FlightState)> stateChanged;
 
     // Public function to trigger takeoff event
     void triggerTakeoff() {
         m_SM.process_event(TakeoffEvent());
-        notifySubscribers("Takeoff");
+        m_currentState = drone_sdk::FlightState::TAKEOFF;
+        notifySubscribers(m_currentState);
     }
 
     // Public function to trigger airborne event
     void triggerAirborne() {
         m_SM.process_event(AirborneEvent());
-        notifySubscribers("Airborne");
+        m_currentState = drone_sdk::FlightState::AIRBORNE;
+        notifySubscribers(m_currentState);
     }
 
     // Public function to trigger hover event
     void triggerHover() {
         m_SM.process_event(HoverEvent());
-        notifySubscribers("Hover");
+        m_currentState = drone_sdk::FlightState::HOVER;
+        notifySubscribers(m_currentState);
     }
 
     // Public function to trigger task completion event
     void triggerTaskComplete() {
         m_SM.process_event(TaskCompleteEvent());
-        notifySubscribers("TaskComplete");
+        m_currentState = drone_sdk::FlightState::RETURN_HOME;
+        notifySubscribers(m_currentState);
     }
 
     // Public function to trigger safety violation event
     void triggerSafetyViolation() {
         m_SM.process_event(SafetyViolationEvent());
-        notifySubscribers("SafetyViolation");
+        m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
+        notifySubscribers(m_currentState);
     }
 
     // Public function to process safety violation (e.g., emergency land)
     void handleEmergencyLand() {
         m_SM.process_event(SafetyViolationEvent());
-        notifySubscribers("EmergencyLand");
+        m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
+        notifySubscribers(m_currentState);
+    }
+
+    // Function to get the current flight state
+    drone_sdk::FlightState getCurrentState() const {
+        return m_currentState;
+    }
+
+    // Public function to subscribe to state changes
+    boost::signals2::connection subscribeToStateChange(const boost::signals2::signal<void(drone_sdk::FlightState)>::slot_type& subscriber) {
+        return stateChanged.connect(subscriber);
     }
 
 private:
@@ -127,7 +146,7 @@ private:
     boost::sml::sm<Flight_SM> m_SM;
 
     // Function to notify all subscribers
-    void notifySubscribers(const std::string& newState) {
+    void notifySubscribers(drone_sdk::FlightState newState) {
         stateChanged(newState);  // Notify all subscribers with the new state
     }
 };
