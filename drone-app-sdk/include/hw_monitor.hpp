@@ -5,6 +5,7 @@
 #include <atomic>
 #include "gps_handler.hpp"
 #include "link_handler.hpp" 
+#include "icd.hpp"
 
 class HardwareMonitor {
 public:

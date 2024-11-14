@@ -90,3 +90,17 @@ target_include_directories(hw-monitor-demo PRIVATE
 
 # Link libraries for hw-monitor-demo (link gps and link)
 target_link_libraries(hw-monitor-demo PRIVATE gps link)
+
+
+# Define the executable target for the Flight Controller handler demo
+add_executable(flight-controller-handler-demo tests/flight_controller_handler_demo.cpp)
+
+# Include directories and link libraries for flight-controller-handler-demo
+target_include_directories(flight-controller-handler-demo PRIVATE 
+    ${PROJECT_SOURCE_DIR}/flight-controller/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
+    ${Boost_INCLUDE_DIRS}  # Include Boost headers
+)
+
+# Link libraries for flight-controller-handler-demo (link flight-controller)
+target_link_libraries(flight-controller-handler-demo PRIVATE flight-controller)

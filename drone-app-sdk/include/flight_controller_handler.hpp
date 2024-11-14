@@ -1,7 +1,7 @@
 #ifndef FLIGHT_CONTROLLER_HANDLER_HPP
 #define FLIGHT_CONTROLLER_HANDLER_HPP
 
-#include "flight-controller/flight-controller.hpp"    // For hw_sdk_mock::FlightController
+#include "flight-controller/flight_controller.hpp"    // For hw_sdk_mock::FlightController
 #include "icd.hpp"                  // For drone_sdk::FlightControllerStatus
 
 class FlightControllerHandler {

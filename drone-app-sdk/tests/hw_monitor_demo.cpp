@@ -1,15 +1,16 @@
 #include <iostream>
 #include "hw_monitor.hpp"
+#include "icd.hpp"
 
 // Callback for GPS updates
-void gpsUpdateCallback(hw_sdk_mock::Gps::Location location, hw_sdk_mock::Gps::SignalQuality signalQuality) {
+void gpsUpdateCallback(drone_sdk::Location location, drone_sdk::SignalQuality signalQuality) {
     std::cout << "Received GPS update: Location(" 
               << location.latitude << ", " << location.longitude << ", " << location.altitude 
               << "), Signal Quality: " << static_cast<int>(signalQuality) << std::endl;
 }
 
 // Callback for Link updates
-void linkUpdateCallback(hw_sdk_mock::Link::SignalQuality signalQuality) {
+void linkUpdateCallback(drone_sdk::SignalQuality signalQuality) {
     std::cout << "Received Link update: Signal Quality: " << static_cast<int>(signalQuality) << std::endl;
 }
 

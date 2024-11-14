@@ -1,8 +1,10 @@
 #include <iostream>
+#include <thread>
+#include <chrono>
 #include "link_handler.hpp"
 
 // Callback function for handling Link updates
-void linkUpdateCallback(hw_sdk_mock::Link::SignalQuality signalQuality) {
+void linkUpdateCallback(drone_sdk::SignalQuality signalQuality) {
     std::cout << "Received Link update: Signal Quality: " << static_cast<int>(signalQuality) << std::endl;
 }
 

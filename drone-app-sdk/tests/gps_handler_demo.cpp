@@ -4,19 +4,19 @@
 #include "gps_handler.hpp"
 
 // Callback function that will be called when the GPS update signal is emitted
-void gpsUpdateCallback(const hw_sdk_mock::Gps::Location& location, hw_sdk_mock::Gps::SignalQuality signalQuality) {
+void gpsUpdateCallback(const drone_sdk::Location& location, drone_sdk::SignalQuality signalQuality) {
     std::cout << "Received GPS update:" << std::endl;
     std::cout << "Latitude: " << location.latitude << ", "
               << "Longitude: " << location.longitude << ", "
-              << "blipAltitude: " << location.altitude << std::endl;
+              << "Altitude: " << location.altitude << std::endl;
 
     std::cout << "Signal Quality: ";
     switch (signalQuality) {
-        case hw_sdk_mock::Gps::SignalQuality::NO_SIGNAL: std::cout << "No Signal"; break;
-        case hw_sdk_mock::Gps::SignalQuality::POOR: std::cout << "Poor"; break;
-        case hw_sdk_mock::Gps::SignalQuality::FAIR: std::cout << "Fair"; break;
-        case hw_sdk_mock::Gps::SignalQuality::GOOD: std::cout << "Good"; break;
-        case hw_sdk_mock::Gps::SignalQuality::EXCELLENT: std::cout << "Excellent"; break;
+        case drone_sdk::SignalQuality::NO_SIGNAL: std::cout << "No Signal"; break;
+        case drone_sdk::SignalQuality::POOR: std::cout << "Poor"; break;
+        case drone_sdk::SignalQuality::FAIR: std::cout << "Fair"; break;
+        case drone_sdk::SignalQuality::GOOD: std::cout << "Good"; break;
+        case drone_sdk::SignalQuality::EXCELLENT: std::cout << "Excellent"; break;
     }
     std::cout << std::endl;
 }
@@ -25,7 +25,7 @@ int main() {
     // Instantiate GpsHandler
     GpsHandler gpsHandler;
 
-    // Subscribe to GPS updates
+    // Subscribe to GPS updates (callback function expects drone_sdk types)
     auto connection = gpsHandler.subscribe(&gpsUpdateCallback);
 
     // Simulate GPS updates periodically
