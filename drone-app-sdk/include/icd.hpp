@@ -27,7 +27,10 @@ namespace drone_sdk {
     };
     
     enum class FlightControllerStatus {
-        SUCCESS = 0,
+        SUCCESS=0,
+        EMERGENCY_LAND,
+        EMERGENCY_GO_HOME,
+        EMERGENCY_ABORTED_MISSION,
         CONNECTION_ERROR,
         HARDWARE_ERROR,
         INVALID_COMMAND,
@@ -42,6 +45,14 @@ namespace drone_sdk {
         using Type = void(*)(SignalQuality);
     };
 
+    enum class CurrentMission{
+        IDLE=0,
+        GOTO,
+        PATH,
+        HOME,
+        LAND,
+        HOVER
+    };
 } // namespace drone_sdk
 
 #endif // ICD_HPP

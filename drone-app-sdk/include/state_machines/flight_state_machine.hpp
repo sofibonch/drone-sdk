@@ -2,6 +2,7 @@
 #define FLIGHT_STATE_MACHINE_HPP
 
 #include <boost/sml.hpp>
+#include <boost/signals2.hpp>  // For signal2
 #include <iostream>
 #include "icd.hpp"  // For SignalQuality and Location
 
@@ -76,46 +77,59 @@ struct Flight_SM {
     }
 };
 
-// FlightStateMachine class that encapsulates the Flight_SM state machine
 class FlightStateMachine {
 public:
     // Constructor initializing the state machine
     FlightStateMachine()
         : m_SM() {}
 
+    // Define signal to notify subscribers about state changes
+    boost::signals2::signal<void(std::string)> stateChanged;
+
     // Public function to trigger takeoff event
     void triggerTakeoff() {
         m_SM.process_event(TakeoffEvent());
+        notifySubscribers("Takeoff");
     }
 
     // Public function to trigger airborne event
     void triggerAirborne() {
         m_SM.process_event(AirborneEvent());
+        notifySubscribers("Airborne");
     }
 
     // Public function to trigger hover event
     void triggerHover() {
         m_SM.process_event(HoverEvent());
+        notifySubscribers("Hover");
     }
 
     // Public function to trigger task completion event
     void triggerTaskComplete() {
         m_SM.process_event(TaskCompleteEvent());
+        notifySubscribers("TaskComplete");
     }
 
     // Public function to trigger safety violation event
     void triggerSafetyViolation() {
         m_SM.process_event(SafetyViolationEvent());
+        notifySubscribers("SafetyViolation");
     }
 
     // Public function to process safety violation (e.g., emergency land)
     void handleEmergencyLand() {
         m_SM.process_event(SafetyViolationEvent());
+        notifySubscribers("EmergencyLand");
     }
 
 private:
     // The state machine instance
     boost::sml::sm<Flight_SM> m_SM;
+
+    // Function to notify all subscribers
+    void notifySubscribers(const std::string& newState) {
+        stateChanged(newState);  // Notify all subscribers with the new state
+    }
 };
 
 } // namespace flightstatemachine

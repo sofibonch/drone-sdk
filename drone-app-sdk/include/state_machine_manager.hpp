@@ -29,6 +29,12 @@ public:
             std::cout << "Received Link Signal Quality: " << static_cast<int>(quality) << std::endl;
             m_safetySM.handleLinkSignal(safetystatemachine::LinkSignal{quality});  // Trigger the safety state machine
         });
+
+        // Subscribe to state changes from FlightStateMachine
+        m_flightSM->stateChanged.connect([this](const std::string& newState) {
+            // Handle state change in FlightStateMachine
+            std::cout << "FlightStateMachine state changed to: " << newState << std::endl;
+        });
     }
 
     void start() {
