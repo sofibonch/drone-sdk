@@ -10,13 +10,13 @@ int main() {
     std::cout << "Starting Drone SDK...\n";
 
     // Execute the emergency land command
-    drone.emergencyLand();
-    drone.returnHome();
+    //drone.emergencyLand();
+    //drone.returnHome();
     // Optionally, you can also execute other commands like hover, returnHome, etc.
     // For example: drone.returnHome();
 
     // Sleep for a few seconds to simulate the SDK running and to allow the commands to take effect
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
 
     // The SDK is now stopping - you can call stop() on the DroneSDK to clean up
     std::cout << "Stopping Drone SDK...\n";
