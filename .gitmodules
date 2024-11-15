@@ -1,0 +1,3 @@
+[submodule "drone-app-sdk/external/googletest"]
+	path = drone-app-sdk/external/googletest
+	url = https://github.com/google/googletest.git
