@@ -62,8 +62,7 @@ struct Flight_SM {
 
 class FlightStateMachine {
 public:
-    // Enum for the current flight state
-    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
+
 
     // Constructor initializing the state machine
     FlightStateMachine()
@@ -121,7 +120,8 @@ public:
 private:
     // The state machine instance
     boost::sml::sm<Flight_SM> m_SM;
-
+    // Enum for the current flight state
+    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
     // Function to update the current state based on the state machine
     void updateCurrentState() {
         // Update m_currentState based on the current state of the state machine using is()

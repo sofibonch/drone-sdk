@@ -21,13 +21,14 @@ struct LinkSignal {
     drone_sdk::SignalQuality quality;
 };
 
+struct GpsHealthy {};
+struct GpsNotHealthy {};
+struct ConnectionConnected {};
+struct ConnectionDisconnected {};
+
 // Safety_SM Struct that represents the state machine
 struct Safety_SM {
     // Define states for the safety state machine
-    struct GpsHealthy {};
-    struct GpsNotHealthy {};
-    struct ConnectionConnected {};
-    struct ConnectionDisconnected {};
 
     // State machine logic (transitions, actions, etc.)
     auto operator()() {
@@ -62,21 +63,18 @@ public:
     explicit SafetyStateMachine(std::shared_ptr<flightstatemachine::FlightStateMachine> flightStateMachine)
         : m_SM(), m_flightStateMachine(flightStateMachine.get()),
           m_gpsState(drone_sdk::safetyState::GPS_HEALTH),
-          m_linkState(drone_sdk::safetyState::CONNECTED),
-          m_linkDisconnectedLock(false) {}
+          m_linkState(drone_sdk::safetyState::CONNECTED){}
 
     // Public function to trigger the GPS signal event
     void handleGpsSignal(const GpsSignal& gpsSignal) {
+        updateCurrentState();
         m_SM.process_event(gpsSignal);
-        updateGpsState(gpsSignal);
     }
 
     // Public function to trigger the Link signal event
     void handleLinkSignal(const LinkSignal& linkSignal) {
-        if (!m_linkDisconnectedLock) {  // Only process if the lock is not set
+        updateCurrentState();
             m_SM.process_event(linkSignal);
-            updateLinkState(linkSignal);
-        }
     }
 
     // Public function to subscribe to GPS state changes
@@ -99,10 +97,11 @@ public:
         return m_linkState;
     }
 
-private:
+    private:
     // The state machine instance
     boost::sml::sm<Safety_SM> m_SM;
     flightstatemachine::FlightStateMachine* m_flightStateMachine;  // Pointer to the FlightStateMachine
+
 
     // Current GPS and link states
     drone_sdk::safetyState m_gpsState;
@@ -111,35 +110,20 @@ private:
     // Signals for GPS and Link state changes
     StateChangeSignal m_gpsStateChangeSignal;
     StateChangeSignal m_linkStateChangeSignal;
-
-    // Lock to prevent reconnection if link is disconnected
-    bool m_linkDisconnectedLock;
-
-    // Private function to update the GPS state based on the signal
-    void updateGpsState(const GpsSignal& gpsSignal) {
-        auto newState = (gpsSignal.quality == drone_sdk::SignalQuality::NO_SIGNAL) 
-                     ? drone_sdk::safetyState::GPS_NOT_HEALTHY 
-                     : drone_sdk::safetyState::GPS_HEALTH;
-        if (m_gpsState != newState) {
-            m_gpsState = newState;
-            m_gpsStateChangeSignal(m_gpsState);  // Notify subscribers of GPS state change
+    void updateCurrentState() {
+        // Update m_currentState based on the current state of the state machine using is()
+        if (m_SM.is(boost::sml::state<GpsHealthy>)) {
+            m_gpsState = drone_sdk::safetyState::GPS_HEALTH;
+        } else if (m_SM.is(boost::sml::state<GpsNotHealthy>)) {
+            m_gpsState = drone_sdk::safetyState::GPS_NOT_HEALTHY;
+        }
+        if (m_SM.is(boost::sml::state<ConnectionConnected>)) {
+            m_linkState = drone_sdk::safetyState::CONNECTED;
+        } else if (m_SM.is(boost::sml::state<ConnectionDisconnected>)) {
+            m_linkState = drone_sdk::safetyState::NOT_CONNECTED;
         }
     }
 
-    // Private function to update the Link state based on the signal
-    void updateLinkState(const LinkSignal& linkSignal) {
-        auto newState = (linkSignal.quality == drone_sdk::SignalQuality::NO_SIGNAL) 
-                      ? drone_sdk::safetyState::NOT_CONNECTED 
-                      : drone_sdk::safetyState::CONNECTED;
-
-        if (m_linkState != newState) {
-            if (newState == drone_sdk::safetyState::NOT_CONNECTED) {
-                m_linkDisconnectedLock = true;  // Lock the link to prevent reconnection
-            }
-            m_linkState = newState;
-            m_linkStateChangeSignal(m_linkState);  // Notify subscribers of Link state change
-        }
-    }
 };
 
 } // namespace safetystatemachine
