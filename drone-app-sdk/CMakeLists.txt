@@ -118,24 +118,29 @@ target_link_libraries(flight-controller-handler-demo PRIVATE flight-controller)
 
 #---test----
 
+# Add mocks for testing
+add_library(mocks STATIC
+    tests/mocks/mock_gps.hpp
+    tests/mocks/mock_link.hpp
+    tests/mocks/dummy_cpp.cpp
+)
 
-# Define the executable target for the SafetyStateMachine test
-add_executable(safety_state_machine_test tests/safety_test.cpp)
+add_executable(safety_state_machine_test tests/unit/safety_test.cpp)
 
-# Include directories for the SafetyStateMachine test and link with required libraries
+# Include directories and link libraries for the SafetyStateMachine test
 target_include_directories(safety_state_machine_test PRIVATE
     ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
     ${PROJECT_SOURCE_DIR}/gps/include
     ${PROJECT_SOURCE_DIR}/link/include
-    ${Boost_INCLUDE_DIRS}  # Include Boost headers
-    external/googletest/include # Include Google Test headers
+    ${Boost_INCLUDE_DIRS}
+    external/googletest/include
 )
 
-# Link the test executable with gtest and required libraries
 target_link_libraries(safety_state_machine_test PRIVATE 
     gtest 
     gtest_main
     flight-controller 
     gps 
     link
+    mocks
 )

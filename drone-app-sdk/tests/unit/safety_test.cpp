@@ -2,12 +2,17 @@
 #include <memory>
 #include "state_machines/safety_state_machine.hpp"
 #include "state_machines/flight_state_machine.hpp"
+#include "../mocks/mock_gps.hpp"
+#include "../mocks/mock_link.hpp"
 
 // Test fixture for SafetyStateMachine
 class SafetyStateMachineTest : public ::testing::Test {
 protected:
     std::shared_ptr<flightstatemachine::FlightStateMachine> m_flightStateMachine;
     safetystatemachine::SafetyStateMachine m_safetyStateMachine;
+
+    hw_sdk_mock::MockGps m_mockGps;   // Using MockGps
+    hw_sdk_mock::MockLink m_mockLink; // Using MockLink
 
     // Signals to capture state changes for GPS and Link
     drone_sdk::safetyState m_gpsState;
@@ -27,42 +32,52 @@ protected:
             m_linkState = state;
         });
     }
+
+    // Helper to simulate GPS signal quality changes using MockGps
+    void simulateGpsSignalQuality(hw_sdk_mock::MockGps::SignalQuality quality) {
+        m_mockGps.setSignalQuality(quality);
+
+        safetystatemachine::GpsSignal gpsSignal;
+        gpsSignal.quality = static_cast<drone_sdk::SignalQuality>(quality);
+        m_safetyStateMachine.handleGpsSignal(gpsSignal);
+    }
+
+    // Helper to simulate Link signal quality changes using MockLink
+    void simulateLinkSignalQuality(hw_sdk_mock::MockLink::SignalQuality quality) {
+        m_mockLink.setSignalQuality(quality);
+
+        safetystatemachine::LinkSignal linkSignal;
+        linkSignal.quality = static_cast<drone_sdk::SignalQuality>(quality);
+        m_safetyStateMachine.handleLinkSignal(linkSignal);
+    }
 };
 
 // Test GPS signal transition: Healthy -> Not Healthy -> Healthy
 TEST_F(SafetyStateMachineTest, GpsSignalTransitions) {
     // Start with a healthy GPS signal
-    safetystatemachine::GpsSignal gpsSignal;
-    gpsSignal.quality = drone_sdk::SignalQuality::GOOD;
-    m_safetyStateMachine.handleGpsSignal(gpsSignal);
+    simulateGpsSignalQuality(hw_sdk_mock::MockGps::SignalQuality::GOOD);
     EXPECT_EQ(m_gpsState, drone_sdk::safetyState::GPS_HEALTH);
 
     // Simulate loss of GPS signal
-    gpsSignal.quality = drone_sdk::SignalQuality::NO_SIGNAL;
-    m_safetyStateMachine.handleGpsSignal(gpsSignal);
+    simulateGpsSignalQuality(hw_sdk_mock::MockGps::SignalQuality::NO_SIGNAL);
     EXPECT_EQ(m_gpsState, drone_sdk::safetyState::GPS_NOT_HEALTHY);
 
     // Restore GPS signal
-    gpsSignal.quality = drone_sdk::SignalQuality::EXCELLENT;
-    m_safetyStateMachine.handleGpsSignal(gpsSignal);
+    simulateGpsSignalQuality(hw_sdk_mock::MockGps::SignalQuality::EXCELLENT);
     EXPECT_EQ(m_gpsState, drone_sdk::safetyState::GPS_HEALTH);
 }
 
-// Test Link signal transition: Connected -> Disconnected -> Disconnected : reconnecting isn't an option
+// Test Link signal transition: Connected -> Disconnected -> Disconnected
 TEST_F(SafetyStateMachineTest, LinkSignalTransitions) {
     // Start with a connected link signal
-    safetystatemachine::LinkSignal linkSignal;
-    linkSignal.quality = drone_sdk::SignalQuality::GOOD;
-    m_safetyStateMachine.handleLinkSignal(linkSignal);
+    simulateLinkSignalQuality(hw_sdk_mock::MockLink::SignalQuality::GOOD);
     EXPECT_EQ(m_linkState, drone_sdk::safetyState::CONNECTED);
 
     // Simulate loss of Link signal
-    linkSignal.quality = drone_sdk::SignalQuality::NO_SIGNAL;
-    m_safetyStateMachine.handleLinkSignal(linkSignal);
+    simulateLinkSignalQuality(hw_sdk_mock::MockLink::SignalQuality::NO_SIGNAL);
     EXPECT_EQ(m_linkState, drone_sdk::safetyState::NOT_CONNECTED);
 
-    // Restore Link signal
-    linkSignal.quality = drone_sdk::SignalQuality::FAIR;
-    m_safetyStateMachine.handleLinkSignal(linkSignal);
+    // Attempt to restore Link signal, should remain disconnected
+    simulateLinkSignalQuality(hw_sdk_mock::MockLink::SignalQuality::FAIR);
     EXPECT_EQ(m_linkState, drone_sdk::safetyState::NOT_CONNECTED);
 }

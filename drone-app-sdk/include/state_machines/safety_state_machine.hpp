@@ -4,6 +4,7 @@
 #include <boost/sml.hpp>
 #include <boost/signals2.hpp>
 #include <iostream>
+
 #include "flight_state_machine.hpp"  // Include the FlightStateMachine header
 #include "gps/gps.hpp"
 #include "link/link.hpp"
