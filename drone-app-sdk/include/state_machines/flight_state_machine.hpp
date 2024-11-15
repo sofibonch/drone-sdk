@@ -30,49 +30,32 @@ struct Flight_SM {
 
         return make_transition_table(
             // Initial state
-            *state<Landed> + event<TakeoffEvent> / [] {
-                std::cout << "Drone taking off...\n";
-            } = state<Takeoff>,
+            *state<Landed> + event<TakeoffEvent> = state<Takeoff>,
 
             // Transition from Takeoff to Airborne
-            state<Takeoff> + event<AirborneEvent> / [] {
-                std::cout << "Drone is airborne...\n";
-            } = state<Airborne>,
+            state<Takeoff> + event<AirborneEvent> = state<Airborne>,
 
             // Transition between Airborne and Hover
-            state<Airborne> + event<HoverEvent> / [] {
-                std::cout << "Drone is hovering...\n";
-            } = state<Hover>,
-            state<Hover> + event<AirborneEvent> / [] {
-                std::cout << "Drone is airborne...\n";
-            } = state<Airborne>,
+            state<Airborne> + event<HoverEvent> = state<Hover>,
+            state<Hover> + event<AirborneEvent> = state<Airborne>,
 
             // Transition from Airborne to ReturnHome
-            state<Airborne> + event<TaskCompleteEvent> / [] {
-                std::cout << "Task complete, returning home...\n";
-            } = state<ReturnHome>,
+            state<Airborne> + event<TaskCompleteEvent> = state<ReturnHome>,
 
             // Transition from any state to Emergency Land on safety violation
-            state<Landed> + event<SafetyViolationEvent> / [] {
-                std::cout << "Emergency land triggered!\n";
-            } = state<EmergencyLand>,
-            state<Takeoff> + event<SafetyViolationEvent> / [] {
-                std::cout << "Emergency land triggered!\n";
-            } = state<EmergencyLand>,
-            state<Airborne> + event<SafetyViolationEvent> / [] {
-                std::cout << "Emergency land triggered!\n";
-            } = state<EmergencyLand>,
-            state<Hover> + event<SafetyViolationEvent> / [] {
-                std::cout << "Emergency land triggered!\n";
-            } = state<EmergencyLand>,
-            state<ReturnHome> + event<SafetyViolationEvent> / [] {
-                std::cout << "Emergency land triggered!\n";
-            } = state<EmergencyLand>,
+            state<Landed> + event<SafetyViolationEvent> = state<EmergencyLand>,
+            state<Takeoff> + event<SafetyViolationEvent> = state<EmergencyLand>,
+            state<Airborne> + event<SafetyViolationEvent> = state<EmergencyLand>,
+            state<Hover> + event<SafetyViolationEvent> = state<EmergencyLand>,
+            state<ReturnHome> + event<SafetyViolationEvent> = state<EmergencyLand>,
 
             // Transition from Emergency Land to Landed (end of emergency)
-            state<EmergencyLand> + event<TaskCompleteEvent> / [] {
-                std::cout << "Emergency landing complete, drone is now landed.\n";
-            } = state<Landed>
+            state<EmergencyLand> + event<TaskCompleteEvent> = state<Landed>,
+
+            // Handle invalid transitions: do nothing from Emergency Land
+            state<EmergencyLand> + event<AirborneEvent> =  state<EmergencyLand>,  // Invalid transition to Airborne
+            state<EmergencyLand> + event<HoverEvent> = state<EmergencyLand>,      // Invalid transition to Hover
+            state<EmergencyLand> + event<TakeoffEvent> = state<EmergencyLand>     // Invalid transition to Takeoff
         );
     }
 };
@@ -92,43 +75,37 @@ public:
     // Public function to trigger takeoff event
     void triggerTakeoff() {
         m_SM.process_event(TakeoffEvent());
-        m_currentState = drone_sdk::FlightState::TAKEOFF;
-        notifySubscribers(m_currentState);
+        updateCurrentState();
     }
 
     // Public function to trigger airborne event
     void triggerAirborne() {
         m_SM.process_event(AirborneEvent());
-        m_currentState = drone_sdk::FlightState::AIRBORNE;
-        notifySubscribers(m_currentState);
+        updateCurrentState();
     }
 
     // Public function to trigger hover event
     void triggerHover() {
         m_SM.process_event(HoverEvent());
-        m_currentState = drone_sdk::FlightState::HOVER;
-        notifySubscribers(m_currentState);
+        updateCurrentState();
     }
 
     // Public function to trigger task completion event
     void triggerTaskComplete() {
         m_SM.process_event(TaskCompleteEvent());
-        m_currentState = drone_sdk::FlightState::RETURN_HOME;
-        notifySubscribers(m_currentState);
+        updateCurrentState();
     }
 
     // Public function to trigger safety violation event
     void triggerSafetyViolation() {
         m_SM.process_event(SafetyViolationEvent());
-        m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
-        notifySubscribers(m_currentState);
+        updateCurrentState();
     }
 
     // Public function to process safety violation (e.g., emergency land)
     void handleEmergencyLand() {
         m_SM.process_event(SafetyViolationEvent());
-        m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
-        notifySubscribers(m_currentState);
+        updateCurrentState();
     }
 
     // Function to get the current flight state
@@ -140,14 +117,27 @@ public:
     boost::signals2::connection subscribeToStateChange(const boost::signals2::signal<void(drone_sdk::FlightState)>::slot_type& subscriber) {
         return stateChanged.connect(subscriber);
     }
-    
+
 private:
     // The state machine instance
     boost::sml::sm<Flight_SM> m_SM;
 
-    // Function to notify all subscribers
-    void notifySubscribers(drone_sdk::FlightState newState) {
-        stateChanged(newState);  // Notify all subscribers with the new state
+    // Function to update the current state based on the state machine
+    void updateCurrentState() {
+        // Update m_currentState based on the current state of the state machine using is()
+        if (m_SM.is(boost::sml::state<Landed>)) {
+            m_currentState = drone_sdk::FlightState::LANDED;
+        } else if (m_SM.is(boost::sml::state<Takeoff>)) {
+            m_currentState = drone_sdk::FlightState::TAKEOFF;
+        } else if (m_SM.is(boost::sml::state<Airborne>)) {
+            m_currentState = drone_sdk::FlightState::AIRBORNE;
+        } else if (m_SM.is(boost::sml::state<Hover>)) {
+            m_currentState = drone_sdk::FlightState::HOVER;
+        } else if (m_SM.is(boost::sml::state<ReturnHome>)) {
+            m_currentState = drone_sdk::FlightState::RETURN_HOME;
+        } else if (m_SM.is(boost::sml::state<EmergencyLand>)) {
+            m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
+        }
     }
 };
 
