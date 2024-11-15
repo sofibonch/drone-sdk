@@ -140,7 +140,7 @@ public:
     boost::signals2::connection subscribeToStateChange(const boost::signals2::signal<void(drone_sdk::FlightState)>::slot_type& subscriber) {
         return stateChanged.connect(subscriber);
     }
-
+    
 private:
     // The state machine instance
     boost::sml::sm<Flight_SM> m_SM;

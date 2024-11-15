@@ -10,13 +10,14 @@ public:
     DroneSDK& operator=(DroneSDK&&) noexcept;
     ~DroneSDK();
 
-    // User commands (e.g., emergency stop, return home, etc.)
-    void emergencyLand();
-    void returnHome();
+    bool goTo(const drone_sdk::Location & location);
+ //   bool followPath(const std::vector<drone_sdk::Location> &path);
+    bool abortMission();
+    bool hover();
 
     // Subscribe to GPS and Link updates with callback functions
-    void subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback);
-    void subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback);
+//    void subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback);
+//    void subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback);
 
     void start();  // Initialize the system and start the monitoring threads
     void stop();   // Clean up resources and stop threads

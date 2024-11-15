@@ -9,6 +9,10 @@ namespace drone_sdk {
         ALTITUDE
     };
 
+    struct Altitude{
+        double altitude;
+    };
+    
     enum class safetyState {
         GPS_HEALTH =0,
         GPS_NOT_HEALTHY,

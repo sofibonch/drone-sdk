@@ -19,13 +19,13 @@ public:
     }
 
     // Command to take off
-    drone_sdk::FlightControllerStatus takeOff() {
-        return convertResponse(m_flightController.takeOff());
+    drone_sdk::FlightControllerStatus takeOff(const drone_sdk::Altitude & altitude) {
+        return convertResponse(m_flightController.takeOff(altitude.altitude));
     }
 
     // Command to land
-    drone_sdk::FlightControllerStatus land() {
-        return convertResponse(m_flightController.land());
+    void land() {
+        m_flightController.land();
     }
 
     // Command to return to home location
@@ -34,8 +34,8 @@ public:
     }
 
     // Command to go to a specific location
-    drone_sdk::FlightControllerStatus goTo(double latitude, double longitude, double altitude) {
-        return convertResponse(m_flightController.goTo(latitude, longitude, altitude));
+    drone_sdk::FlightControllerStatus goTo(drone_sdk::Location location) {
+        return convertResponse(m_flightController.goTo(location.altitude, location.longitude, location.altitude));
     }
 
 private:

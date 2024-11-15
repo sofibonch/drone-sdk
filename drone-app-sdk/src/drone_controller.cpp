@@ -2,26 +2,28 @@
 #include <iostream>
 
 DroneController::DroneController()
-    : m_stateMachineManager(m_hwMonitor) {
+    : m_stateMachineManager()
+    , m_commandController () {
     m_hwMonitor.start();  // Start monitoring
-    m_stateMachineManager.start();  // Start state machine
+    m_stateMachineManager.start(&m_hwMonitor);  // Start state machine
+    m_commandController.start(&m_stateMachineManager);
 }
 
 DroneController::~DroneController() {
     m_hwMonitor.stop();  // Clean up resources
 }
 
-void DroneController::hover() {
+
+bool DroneController::goTo(const drone_sdk::Location & location){
+    return m_commandController.goTo(location);
+}
+//bool DroneController::followPath(const std::vector<drone_sdk::Location> &path){
+//    return m_commandController.followPath(path);
+//}
+bool DroneController::abortMission(){
+    return m_commandController.abortMission();
+}
+bool  DroneController::hover() {
     std::cout << "Hover command executed." << std::endl;
-    // Additional logic for the hover command can go here.
-}
-
-void DroneController::emergencyLand() {
-    std::cout << "Emergency Land command executed." << std::endl;
-    // Additional logic for the emergency land command can go here.
-}
-
-void DroneController::returnHome() {
-    std::cout << "Return Home command executed." << std::endl;
-    // Additional logic for the return home command can go here.
+    return m_commandController.hover();
 }

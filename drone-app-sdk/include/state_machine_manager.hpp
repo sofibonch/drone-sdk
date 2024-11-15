@@ -11,20 +11,21 @@
 
 class StateMachineManager {
 public:
-    StateMachineManager(HardwareMonitor& hwMonitor)
+    StateMachineManager()
         : m_flightSM(std::make_shared<flightstatemachine::FlightStateMachine>()),  // FlightStateMachine managed by shared_ptr
           m_safetySM(m_flightSM)  // Pass FlightStateMachine pointer to SafetyStateMachine
-    {
-        // Subscribe to GPS updates
-        hwMonitor.subscribeToGpsUpdates([this](const drone_sdk::Location& /*location*/, drone_sdk::SignalQuality quality) {
+    {}
+
+    void start(HardwareMonitor * hwMonitor){
+        hwMonitor->subscribeToGpsUpdates([this](const drone_sdk::Location& /*location*/, drone_sdk::SignalQuality quality) {
             m_safetySM.handleGpsSignal(safetystatemachine::GpsSignal{quality});
         });
 
         // Subscribe to Link updates
-        hwMonitor.subscribeToLinkUpdates([this](drone_sdk::SignalQuality quality) {
+        hwMonitor->subscribeToLinkUpdates([this](drone_sdk::SignalQuality quality) {
             m_safetySM.handleLinkSignal(safetystatemachine::LinkSignal{quality});
         });
-
+        
         // Subscribe to GPS state changes from SafetyStateMachine and trigger emergency landing if GPS is not healthy
         m_safetySM.subscribeToGpsState([this](drone_sdk::safetyState gpsState) {
             if (gpsState == drone_sdk::safetyState::GPS_NOT_HEALTHY) {
@@ -42,7 +43,6 @@ public:
         });
 
     }
-
     // Public function to subscribe to GPS state changes
     void subscribeToGpsState(std::function<void(drone_sdk::safetyState)> callback) {
         m_safetySM.subscribeToGpsState(callback);
@@ -52,9 +52,9 @@ public:
     void subscribeToLinkState(std::function<void(drone_sdk::safetyState)> callback) {
         m_safetySM.subscribeToLinkState(callback);
     }
-
-    void start() {
-        std::cout << "State Machine Manager started!" << std::endl;
+    
+   void subscribeToFlightState(std::function<void(drone_sdk::FlightState)> callback) {
+        m_flightSM->subscribeToStateChange(callback);
     }
 
 private:

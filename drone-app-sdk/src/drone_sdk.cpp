@@ -12,26 +12,32 @@ DroneSDK::~DroneSDK() {
     // Cleanup is handled automatically by the unique_ptr
 }
 
-void DroneSDK::emergencyLand() {
-    // m_DroneController->emergencyLand(); // Uncomment if needed
+bool DroneSDK::goTo(const drone_sdk::Location & location){
+    return m_DroneController->goTo(location);
 }
 
-void DroneSDK::returnHome() {
-    m_DroneController->returnHome();
+//bool DroneSDK::followPath(const std::vector<drone_sdk::Location> &path){
+//    return m_DroneController->followPath(path);
+//}
+bool DroneSDK::abortMission(){
+    return m_DroneController->abortMission();
+}
+bool DroneSDK::hover(){
+    return m_DroneController->hover();
 }
 
-void DroneSDK::subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback) {
-    m_DroneController->getHardwareMonitor().subscribeToGpsUpdates(gpsCallback);
-}
-
-void DroneSDK::subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback) {
-    m_DroneController->getHardwareMonitor().subscribeToLinkUpdates(linkCallback);
-}
+//void DroneSDK::subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback) {
+//    m_DroneController.subscribeToGpsUpdates(gpsCallback);
+//}
+//
+//void DroneSDK::subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback) {
+//    m_DroneController.subscribeToLinkUpdates(linkCallback);
+//}
 
 void DroneSDK::start() {
-    // Initialize components and start the hardware monitor and state machine manager
+   
 }
 
 void DroneSDK::stop() {
-    m_DroneController->getHardwareMonitor().stop();  // Stop monitoring and threads
+    //m_DroneController.stop();  // Stop monitoring and threads
 }
