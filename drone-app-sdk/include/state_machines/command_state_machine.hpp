@@ -36,6 +36,7 @@ struct Command_SM {
 };
 
 // CommandStateMachine class encapsulates the Command_SM state machine
+//home is set to default (0,0,0)
 class CommandStateMachine {
 public:
     using StateChangeSignal = boost::signals2::signal<void(drone_sdk::CommandStatus)>;
@@ -52,6 +53,10 @@ public:
     void handleGpsLocationUpdate(const drone_sdk::Location& newLocation);
 
     void setHomebase(const drone_sdk::Location& newHome);
+    drone_sdk::Location getHomebase(){
+
+        return m_home;
+    }
 
     boost::signals2::connection subscribeToState(const StateChangeSignal::slot_type& subscriber);
     boost::signals2::connection subscribeToPathWaypoint(const PathWayPoint::slot_type& subscriber);
@@ -65,6 +70,7 @@ private:
     void updateCurrentState();
     void updateCurrentMission(drone_sdk::CurrentMission newMission);
 
+private:
     boost::sml::sm<Command_SM> m_SM;
     drone_sdk::CommandStatus m_currentState;
     StateChangeSignal m_stateChangeSignal;

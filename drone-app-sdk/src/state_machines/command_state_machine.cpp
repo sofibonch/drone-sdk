@@ -40,6 +40,7 @@ void CommandStateMachine::handleTaskAssigned(
         break;
 
     case drone_sdk::CurrentMission::HOVER:
+        MissionComplete();//staying in place and changing to idle while in air?
         break;
 
     case drone_sdk::CurrentMission::PATH:
@@ -121,10 +122,10 @@ void CommandStateMachine::handleTaskCompleted() {
 
 // Handle path updates for PATH mission
 void CommandStateMachine::handleTaskPathUpdate() {
+    m_pathWaypoint(m_destination);
     if (m_pathQueue.empty()) {
         handleTaskCompleted();
     } else {
-        m_pathWaypoint(m_destination);
         m_destination = m_pathQueue.front();
         m_pathQueue.pop();
     }
