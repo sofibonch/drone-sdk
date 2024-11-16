@@ -92,8 +92,6 @@ private:
 
     drone_sdk::CommandStatus m_currentState;
     StateChangeSignal m_stateChangeSignal;
-    
-
 
 };
 

@@ -6,20 +6,22 @@ void CommandController::start(StateMachineManager * stateMachineManager)
 }
 // Command to go to a specified location
 bool CommandController::goTo(const drone_sdk::Location& location) {
+    //preforming the set of action to become airborn to preform the goto action, use try catch?
     if (m_cur_flight_state == drone_sdk::FlightState::LANDED) {
-        // Construct an Altitude object using location.altitude
-        drone_sdk::Altitude alt{location.altitude};  // Use braces if Altitude has a single-field constructor
-        if (m_flightControllerHandler.arm() != drone_sdk::FlightControllerStatus::SUCCESS ||
-            m_flightControllerHandler.takeOff(alt) != drone_sdk::FlightControllerStatus::SUCCESS) {
-            std::cerr << "Failed to arm or take off." << std::endl;
+       // drone_sdk::Altitude::altitude alt = location.altitude;
+        //if (m_flightControllerHandler.arm() != drone_sdk::FlightControllerStatus::SUCCESS ||
+        //    m_flightControllerHandler.takeOff(alt) != drone_sdk::FlightControllerStatus::SUCCESS) {
+        //    std::cerr << "Failed to arm or take off." << std::endl;
             return false;
-        }
+        //}
     }
-
+    //if in emergency state block the goto command
+    else if(m_cur_flight_state == drone_sdk::FlightState::EMERGENCY_LAND){
+        return false;
+    }
     // Go directly to the specified location
     return m_flightControllerHandler.goTo(location) == drone_sdk::FlightControllerStatus::SUCCESS;
 }
-
 
 // Command to follow a path of multiple locations using queue
 //bool CommandController::followPath(const std::queue<drone_sdk::Location>& path) {

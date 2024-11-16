@@ -18,7 +18,9 @@ bool hover();
 
 //HardwareMonitor& getHardwareMonitor() { return m_hwMonitor; }
 private:
+//path should be tracked here?
     HardwareMonitor m_hwMonitor;                // Monitors hardware components (e.g., GPS, Link)
+    //should subscribe to the machines
     StateMachineManager m_stateMachineManager;  // Manages state transitions for the drone
     CommandController m_commandController;      // Manages commands
 };

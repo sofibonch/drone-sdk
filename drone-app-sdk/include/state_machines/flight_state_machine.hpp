@@ -66,7 +66,8 @@ public:
 
     // Constructor initializing the state machine
     FlightStateMachine()
-        : m_SM() {}
+        : m_SM() 
+        {}
 
     // Define signal to notify subscribers about state changes
     boost::signals2::signal<void(drone_sdk::FlightState)> stateChanged;
@@ -117,7 +118,24 @@ public:
         return stateChanged.connect(subscriber);
     }
 
+    // Handle GPS state changes from the SafetyStateMachine
+    void handleGpsStateChange(drone_sdk::safetyState gpsState) {
+        if (gpsState == drone_sdk::safetyState::GPS_NOT_HEALTHY) {
+            //std::cout << "FlightSM: GPS Not Healthy - Triggering Safety Violation" << std::endl;
+            triggerSafetyViolation();
+        }
+    }
+
+    // Handle Link state changes from the SafetyStateMachine
+    void handleLinkStateChange(drone_sdk::safetyState linkState) {
+        if (linkState == drone_sdk::safetyState::NOT_CONNECTED) {
+           // std::cout << "FlightSM: Link Disconnected - Triggering Safety Violation" << std::endl;
+            triggerSafetyViolation();
+        }
+    }
+
 private:
+//add a private function that handles the change based on the flghit state machine
     void updateCurrentState() {
         // Update m_currentState based on the current state of the state machine using is()
         if (m_SM.is(boost::sml::state<Landed>)) {
@@ -134,7 +152,7 @@ private:
             m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
         }
     }
-
+    //
 private:
     boost::sml::sm<Flight_SM> m_SM;
     drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;

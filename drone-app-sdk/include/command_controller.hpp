@@ -23,8 +23,10 @@ private:
 
     //void handleStatus(drone_sdk::FlightControllerStatus status);
     drone_sdk::FlightState m_cur_flight_state;
+    //states of location should move to state machine
     drone_sdk::Location m_cur_location;
     drone_sdk::Location m_homebase;
+    //path should be in drone controller
     std::queue<drone_sdk::Location> m_pathQueue;  // Queue for path points
     bool m_onPath;
 };

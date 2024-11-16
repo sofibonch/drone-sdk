@@ -15,7 +15,11 @@ DroneController::~DroneController() {
 
 
 bool DroneController::goTo(const drone_sdk::Location & location){
-    return m_commandController.goTo(location);
+    if( m_commandController.goTo(location)){
+       // m_stateMachineManager//change state in the machine
+        return true;
+    }
+    return false;
 }
 //bool DroneController::followPath(const std::vector<drone_sdk::Location> &path){
 //    return m_commandController.followPath(path);

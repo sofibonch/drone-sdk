@@ -37,6 +37,7 @@ struct Safety_SM {
         return make_transition_table(
             *state<GpsHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [this] {
                 // GPS signal lost
+                std::cout<<"boop"<<std::endl;
             } = state<GpsNotHealthy>,
 
             state<GpsNotHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
@@ -59,22 +60,21 @@ class SafetyStateMachine {
 public:
     using StateChangeSignal = boost::signals2::signal<void(drone_sdk::safetyState)>;
 
-    // Constructor initializing the state machine and passing a pointer to FlightStateMachine
-    explicit SafetyStateMachine(std::shared_ptr<flightstatemachine::FlightStateMachine> flightStateMachine)
-        : m_SM(), m_flightStateMachine(flightStateMachine.get()),
-          m_gpsState(drone_sdk::safetyState::GPS_HEALTH),
-          m_linkState(drone_sdk::safetyState::CONNECTED){}
+    explicit SafetyStateMachine()
+        : m_SM()
+        , m_gpsState(drone_sdk::safetyState::GPS_HEALTH)
+        ,  m_linkState(drone_sdk::safetyState::CONNECTED){}
 
     // Public function to trigger the GPS signal event
     void handleGpsSignal(const GpsSignal& gpsSignal) {
-        updateCurrentState();
         m_SM.process_event(gpsSignal);
+        updateCurrentState();
     }
 
     // Public function to trigger the Link signal event
     void handleLinkSignal(const LinkSignal& linkSignal) {
+        m_SM.process_event(linkSignal);
         updateCurrentState();
-            m_SM.process_event(linkSignal);
     }
 
     // Public function to subscribe to GPS state changes
@@ -100,8 +100,6 @@ public:
     private:
     // The state machine instance
     boost::sml::sm<Safety_SM> m_SM;
-    flightstatemachine::FlightStateMachine* m_flightStateMachine;  // Pointer to the FlightStateMachine
-
 
     // Current GPS and link states
     drone_sdk::safetyState m_gpsState;
