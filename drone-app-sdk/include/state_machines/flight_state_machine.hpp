@@ -123,6 +123,7 @@ public:
         if (gpsState == drone_sdk::safetyState::GPS_NOT_HEALTHY) {
             //std::cout << "FlightSM: GPS Not Healthy - Triggering Safety Violation" << std::endl;
             triggerSafetyViolation();
+            updateCurrentState();
         }
     }
 
@@ -131,6 +132,7 @@ public:
         if (linkState == drone_sdk::safetyState::NOT_CONNECTED) {
            // std::cout << "FlightSM: Link Disconnected - Triggering Safety Violation" << std::endl;
             triggerSafetyViolation();
+            updateCurrentState();
         }
     }
 
@@ -151,6 +153,7 @@ private:
         } else if (m_SM.is(boost::sml::state<EmergencyLand>)) {
             m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
         }
+        stateChanged(m_currentState);
     }
     //
 private:

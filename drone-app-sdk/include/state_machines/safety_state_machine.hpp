@@ -37,7 +37,6 @@ struct Safety_SM {
         return make_transition_table(
             *state<GpsHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [this] {
                 // GPS signal lost
-                std::cout<<"boop"<<std::endl;
             } = state<GpsNotHealthy>,
 
             state<GpsNotHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
@@ -96,19 +95,12 @@ public:
     drone_sdk::safetyState getCurrentLinkState() const {
         return m_linkState;
     }
-
-    private:
-    // The state machine instance
-    boost::sml::sm<Safety_SM> m_SM;
-
-    // Current GPS and link states
-    drone_sdk::safetyState m_gpsState;
-    drone_sdk::safetyState m_linkState;
-
-    // Signals for GPS and Link state changes
-    StateChangeSignal m_gpsStateChangeSignal;
-    StateChangeSignal m_linkStateChangeSignal;
+private:
     void updateCurrentState() {
+        // Temporary variables to hold the old state values
+        drone_sdk::safetyState prevGpsState = m_gpsState;
+        drone_sdk::safetyState prevLinkState = m_linkState;
+
         // Update m_currentState based on the current state of the state machine using is()
         if (m_SM.is(boost::sml::state<GpsHealthy>)) {
             m_gpsState = drone_sdk::safetyState::GPS_HEALTH;
@@ -120,8 +112,28 @@ public:
         } else if (m_SM.is(boost::sml::state<ConnectionDisconnected>)) {
             m_linkState = drone_sdk::safetyState::NOT_CONNECTED;
         }
+
+        // Notify only if the state has changed
+        if (m_gpsState != prevGpsState) {
+            m_gpsStateChangeSignal(m_gpsState);
+        }
+
+        if (m_linkState != prevLinkState) {
+            m_linkStateChangeSignal(m_linkState);
+        }
     }
 
+private:
+    // The state machine instance
+    boost::sml::sm<Safety_SM> m_SM;
+
+    // Current GPS and link states
+    drone_sdk::safetyState m_gpsState;
+    drone_sdk::safetyState m_linkState;
+
+    // Signals for GPS and Link state changes
+    StateChangeSignal m_gpsStateChangeSignal;
+    StateChangeSignal m_linkStateChangeSignal;
 };
 
 } // namespace safetystatemachine

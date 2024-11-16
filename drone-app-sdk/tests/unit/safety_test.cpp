@@ -1,68 +1,114 @@
-#include <gtest/gtest.h>
-#include <memory>
 #include "state_machines/safety_state_machine.hpp"
+#include <gtest/gtest.h>
+#include <boost/signals2.hpp>
+#include <boost/bind/bind.hpp>
+
+using namespace boost::placeholders;
+using namespace safetystatemachine;
+using namespace drone_sdk;
+
+// Helper class to capture state changes
+class SafetyStateChangeObserver {
+public:
+    void onGpsStateChanged(safetyState newState) {
+        lastGpsState = newState;
+    }
+
+    void onLinkStateChanged(safetyState newState) {
+        lastLinkState = newState;
+    }
+
+    safetyState getLastGpsState() const { return lastGpsState; }
+    safetyState getLastLinkState() const { return lastLinkState; }
+
+
+
+private:
+    safetyState lastGpsState = safetyState::GPS_HEALTH;
+    safetyState lastLinkState = safetyState::CONNECTED;
+};
 
 class SafetyStateMachineTest : public ::testing::Test {
 protected:
-    safetystatemachine::SafetyStateMachine m_safetyStateMachine;
+    SafetyStateMachine sm;
+    SafetyStateChangeObserver observer;
 
-    // Captured states for GPS and Link
-    drone_sdk::safetyState m_gpsState;
-    drone_sdk::safetyState m_linkState;
-
-    SafetyStateMachineTest()
-        : m_gpsState(drone_sdk::safetyState::GPS_HEALTH),
-          m_linkState(drone_sdk::safetyState::CONNECTED) {
-        // Subscribe to GPS state changes
-        m_safetyStateMachine.subscribeToGpsState(
-            [this](drone_sdk::safetyState state) { m_gpsState = state; });
-
-        // Subscribe to Link state changes
-        m_safetyStateMachine.subscribeToLinkState(
-            [this](drone_sdk::safetyState state) { m_linkState = state; });
+    void SetUp() override {
+        // Subscribe the observer to the state machine
+        sm.subscribeToGpsState(
+            boost::bind(&SafetyStateChangeObserver::onGpsStateChanged, &observer, _1));
+        sm.subscribeToLinkState(
+            boost::bind(&SafetyStateChangeObserver::onLinkStateChanged, &observer, _1));
     }
 };
 
-// Test GPS signal transitions
-TEST_F(SafetyStateMachineTest, GpsSignalTransitions) {
-    safetystatemachine::GpsSignal gpsSignal;
-   
-    // Start with a healthy GPS signal
-    gpsSignal.quality = drone_sdk::SignalQuality::GOOD;
-    m_safetyStateMachine.handleGpsSignal(gpsSignal);
-    EXPECT_EQ(m_gpsState, drone_sdk::safetyState::GPS_HEALTH);
-
-    // Transition to GPS not healthy
-    gpsSignal.quality = drone_sdk::SignalQuality::NO_SIGNAL;
-    m_safetyStateMachine.handleGpsSignal(gpsSignal);
-    m_gpsState=m_safetyStateMachine.getCurrentGpsState();
-    EXPECT_EQ(m_gpsState, drone_sdk::safetyState::GPS_NOT_HEALTHY);
-
-    // Transition back to GPS healthy
-    gpsSignal.quality = drone_sdk::SignalQuality::EXCELLENT;
-    m_safetyStateMachine.handleGpsSignal(gpsSignal);
-    m_gpsState=m_safetyStateMachine.getCurrentGpsState();
-    EXPECT_EQ(m_gpsState, drone_sdk::safetyState::GPS_HEALTH);
+// Test: Initial State
+TEST_F(SafetyStateMachineTest, InitialState) {
+    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_HEALTH);
+    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::CONNECTED);
 }
 
-// Test Link signal transitions
-TEST_F(SafetyStateMachineTest, LinkSignalTransitions) {
-    safetystatemachine::LinkSignal linkSignal;
-    // Start with a connected link signal
-    linkSignal.quality = drone_sdk::SignalQuality::GOOD;
-    m_safetyStateMachine.handleLinkSignal(linkSignal);
-    m_linkState=m_safetyStateMachine.getCurrentLinkState();
-    EXPECT_EQ(m_linkState, drone_sdk::safetyState::CONNECTED);
+// Section: Tests for handleGpsSignal()
+TEST_F(SafetyStateMachineTest, HandleGpsSignalNotHealthy) {
+    GpsSignal gpsSignal{SignalQuality::NO_SIGNAL};
+    sm.handleGpsSignal(gpsSignal);
 
-    // Transition to link disconnected
-    linkSignal.quality = drone_sdk::SignalQuality::NO_SIGNAL;
-    m_safetyStateMachine.handleLinkSignal(linkSignal);
-    m_linkState=m_safetyStateMachine.getCurrentLinkState();
-    EXPECT_EQ(m_linkState, drone_sdk::safetyState::NOT_CONNECTED);
-
-    // Even if the signal improves, the link remains disconnected
-    linkSignal.quality = drone_sdk::SignalQuality::FAIR;
-    m_safetyStateMachine.handleLinkSignal(linkSignal);
-    m_linkState=m_safetyStateMachine.getCurrentLinkState();
-    EXPECT_EQ(m_linkState, drone_sdk::safetyState::CONNECTED);
+    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_NOT_HEALTHY);
+    EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_NOT_HEALTHY);
+    
 }
+
+TEST_F(SafetyStateMachineTest, HandleGpsSignalHealthy) {
+    GpsSignal gpsSignal{SignalQuality::EXCELLENT};
+    sm.handleGpsSignal(gpsSignal);
+
+    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_HEALTH);
+    EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_HEALTH);
+    
+}
+
+// Section: Tests for handleLinkSignal()
+TEST_F(SafetyStateMachineTest, HandleLinkSignalDisconnected) {
+    LinkSignal linkSignal{SignalQuality::NO_SIGNAL};
+    sm.handleLinkSignal(linkSignal);
+
+    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::NOT_CONNECTED);
+    EXPECT_EQ(observer.getLastLinkState(), safetyState::NOT_CONNECTED);
+    
+}
+
+TEST_F(SafetyStateMachineTest, HandleLinkSignalConnected) {
+    LinkSignal linkSignal{SignalQuality::EXCELLENT};
+    sm.handleLinkSignal(linkSignal);
+
+    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::CONNECTED);
+    EXPECT_EQ(observer.getLastLinkState(), safetyState::CONNECTED);
+    
+}
+
+// Section: Tests for transitions from GpsNotHealthy to GpsHealthy
+TEST_F(SafetyStateMachineTest, GpsStateRestored) {
+    GpsSignal gpsSignalLost{SignalQuality::NO_SIGNAL};
+    sm.handleGpsSignal(gpsSignalLost);  // Lost signal -> GPS_NOT_HEALTHY
+    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_NOT_HEALTHY);
+
+    GpsSignal gpsSignalRestored{SignalQuality::EXCELLENT};
+    sm.handleGpsSignal(gpsSignalRestored);  // Restored signal -> GPS_HEALTH
+    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_HEALTH);
+    EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_HEALTH);
+    
+}
+
+// Section: Tests for transitions from ConnectionDisconnected to ConnectionConnected
+TEST_F(SafetyStateMachineTest, LinkStateRestored) {
+    LinkSignal linkSignalLost{SignalQuality::NO_SIGNAL};
+    sm.handleLinkSignal(linkSignalLost);  // Lost connection -> NOT_CONNECTED
+    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::NOT_CONNECTED);
+
+    LinkSignal linkSignalRestored{SignalQuality::EXCELLENT};
+    sm.handleLinkSignal(linkSignalRestored);  // Restored connection -> CONNECTED
+    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::CONNECTED);
+    EXPECT_EQ(observer.getLastLinkState(), safetyState::CONNECTED);
+    
+}
+
