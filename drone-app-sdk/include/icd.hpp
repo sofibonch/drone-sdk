@@ -71,6 +71,13 @@ namespace drone_sdk {
         LAND,
         HOVER
     };
+
+    enum class CommandStatus{
+        IDLE=0,
+        BUSY,
+        MISSION_COMPLETE,
+        MISSION_ABORT
+    };
 } // namespace drone_sdk
 
 #endif // ICD_HPP

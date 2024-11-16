@@ -118,11 +118,6 @@ public:
     }
 
 private:
-    // The state machine instance
-    boost::sml::sm<Flight_SM> m_SM;
-    // Enum for the current flight state
-    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
-    // Function to update the current state based on the state machine
     void updateCurrentState() {
         // Update m_currentState based on the current state of the state machine using is()
         if (m_SM.is(boost::sml::state<Landed>)) {
@@ -139,6 +134,13 @@ private:
             m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
         }
     }
+
+private:
+    boost::sml::sm<Flight_SM> m_SM;
+    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
+   // drone_sdk::Location m_cur_loc {}
+
+
 };
 
 } // namespace flightstatemachine
