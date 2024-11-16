@@ -125,7 +125,9 @@ add_library(mocks STATIC
     tests/mocks/dummy_cpp.cpp
 )
 
-add_executable(safety_sm_test tests/unit/safety_test.cpp)
+#---safety state machine test---
+
+add_executable(safety_sm_test tests/unit/safety_sm_test.cpp)
 
 # Include directories and link libraries for the SafetyStateMachine test
 target_include_directories(safety_sm_test PRIVATE
@@ -145,6 +147,8 @@ target_link_libraries(safety_sm_test PRIVATE
     mocks
 )
 
+
+#---flight state machine test---
 add_executable(flight_sm_test tests/unit/flight_sm_test.cpp)
 
 # Include directories and link libraries for the SafetyStateMachine test
@@ -161,6 +165,31 @@ target_link_libraries(flight_sm_test PRIVATE
     gtest_main
     flight-controller 
     gps 
+    link
+    mocks
+)
+
+#--- command state macghine test---
+add_executable(command_sm_test 
+    tests/unit/command_sm_test.cpp
+    src/state_machines/command_state_machine.cpp
+)
+
+# Include directories for the CommandStateMachine test
+target_include_directories(command_sm_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
+    ${PROJECT_SOURCE_DIR}/gps/include
+    ${PROJECT_SOURCE_DIR}/link/include
+    ${Boost_INCLUDE_DIRS}
+    external/googletest/include
+)
+
+# Link libraries for the CommandStateMachine test
+target_link_libraries(command_sm_test PRIVATE
+    gtest
+    gtest_main
+    flight-controller
+    gps
     link
     mocks
 )

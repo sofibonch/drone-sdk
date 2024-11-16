@@ -137,8 +137,8 @@ public:
     }
 
 private:
-//add a private function that handles the change based on the flghit state machine
     void updateCurrentState() {
+        drone_sdk::FlightState prev_stat= m_currentState;
         // Update m_currentState based on the current state of the state machine using is()
         if (m_SM.is(boost::sml::state<Landed>)) {
             m_currentState = drone_sdk::FlightState::LANDED;
@@ -153,14 +153,14 @@ private:
         } else if (m_SM.is(boost::sml::state<EmergencyLand>)) {
             m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
         }
-        stateChanged(m_currentState);
+        if(m_currentState!=prev_stat){
+            stateChanged(m_currentState);
+        }
     }
-    //
+    
 private:
     boost::sml::sm<Flight_SM> m_SM;
     drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
-   // drone_sdk::Location m_cur_loc {}
-
 
 };
 

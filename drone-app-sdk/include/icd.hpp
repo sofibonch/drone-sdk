@@ -25,7 +25,11 @@ namespace drone_sdk {
         double longitude;
         double altitude;
 
-        double getField(LocationField field) const;
+        bool operator==(const Location& other) const {
+        return latitude == other.latitude &&
+               longitude == other.longitude &&
+               altitude == other.altitude;
+        }   
     };
 
     enum class SignalQuality
@@ -63,13 +67,15 @@ namespace drone_sdk {
         EMERGENCY_LAND, // Drone descends immediately to a safe landing due to critical safety issues.
         RETURN_HOME     // Drone returns to its home location, typically after completing a task.
     };
+
     enum class CurrentMission{
         IDLE=0,
         GOTO,
         PATH,
         HOME,
         LAND,
-        HOVER
+        HOVER,
+        EMERGENCY
     };
 
     enum class CommandStatus{
