@@ -8,160 +8,137 @@
 
 namespace flightstatemachine {
 
-// Events for the FlightStateMachine
-struct TakeoffEvent {};
-struct AirborneEvent {};
-struct HoverEvent {};
-struct TaskCompleteEvent {};
-struct SafetyViolationEvent {};
+/**
+ * @brief Events for the FlightStateMachine
+ * These events trigger transitions between states in the state machine.
+ */
+struct TakeoffEvent {};      ///< Triggered to initiate takeoff.
+struct AirborneEvent {};     ///< Triggered when the drone becomes airborne.
+struct HoverEvent {};        ///< Triggered to transition to hover mode.
+struct TaskCompleteEvent {}; ///< Triggered when the drone completes its task.
+struct SafetyViolationEvent {}; ///< Triggered during a safety violation.
 
-// States for the FlightStateMachine
-struct Landed {};
-struct Takeoff {};
-struct Airborne {};
-struct Hover {};
-struct EmergencyLand {};
-struct ReturnHome {};
+/**
+ * @brief States for the FlightStateMachine
+ * These represent the possible states the drone can be in.
+ */
+struct Landed {};         ///< The drone is on the ground.
+struct Takeoff {};        ///< The drone is taking off.
+struct Airborne {};       ///< The drone is flying normally.
+struct Hover {};          ///< The drone is hovering in place.
+struct EmergencyLand {};  ///< The drone is performing an emergency landing.
+struct ReturnHome {};     ///< The drone is returning to its home location.
 
-// Flight_SM struct represents the state machine logic and transitions
+/**
+ * @brief Flight_SM represents the state machine logic and transitions.
+ * 
+ * @details This struct defines the transitions between states using Boost.SML.
+ *          Transitions include valid moves between states and invalid scenarios.
+ */
 struct Flight_SM {
+    /**
+     * @brief Defines the state machine transitions.
+     * @return The transition table for the state machine.
+     */
     auto operator()() {
         using namespace boost::sml;
 
         return make_transition_table(
-            // Initial state
             *state<Landed> + event<TakeoffEvent> = state<Takeoff>,
-
-            // Transition from Takeoff to Airborne
             state<Takeoff> + event<AirborneEvent> = state<Airborne>,
-
-            // Transition between Airborne and Hover
             state<Airborne> + event<HoverEvent> = state<Hover>,
             state<Hover> + event<AirborneEvent> = state<Airborne>,
-
-            // Transition from Airborne to ReturnHome
             state<Airborne> + event<TaskCompleteEvent> = state<ReturnHome>,
-
-            // Transition from any state to Emergency Land on safety violation
             state<Landed> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<Takeoff> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<Airborne> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<Hover> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<ReturnHome> + event<SafetyViolationEvent> = state<EmergencyLand>,
-
-            // Transition from Emergency Land to Landed (end of emergency)
             state<EmergencyLand> + event<TaskCompleteEvent> = state<Landed>,
-
-            // Handle invalid transitions: do nothing from Emergency Land
-            state<EmergencyLand> + event<AirborneEvent> =  state<EmergencyLand>,  // Invalid transition to Airborne
-            state<EmergencyLand> + event<HoverEvent> = state<EmergencyLand>,      // Invalid transition to Hover
-            state<EmergencyLand> + event<TakeoffEvent> = state<EmergencyLand>     // Invalid transition to Takeoff
+            state<EmergencyLand> + event<AirborneEvent> = state<EmergencyLand>,
+            state<EmergencyLand> + event<HoverEvent> = state<EmergencyLand>,
+            state<EmergencyLand> + event<TakeoffEvent> = state<EmergencyLand>
         );
     }
 };
 
+/**
+ * @brief FlightStateMachine class manages the state transitions and signals.
+ */
 class FlightStateMachine {
 public:
+    /**
+     * @brief Constructor for the FlightStateMachine.
+     */
+    FlightStateMachine();
+    ~FlightStateMachine()=default;
+    /**
+     * @brief Trigger a takeoff event.
+     */
+    void triggerTakeoff();
 
+    /**
+     * @brief Trigger an airborne event.
+     */
+    void triggerAirborne();
 
-    // Constructor initializing the state machine
-    FlightStateMachine()
-        : m_SM() 
-        {}
+    /**
+     * @brief Trigger a hover event.
+     */
+    void triggerHover();
 
-    // Define signal to notify subscribers about state changes
+    /**
+     * @brief Notify the state machine that a task has been completed.
+     */
+    void triggerTaskComplete();
+
+    /**
+     * @brief Notify the state machine of a safety violation.
+     */
+    void triggerSafetyViolation();
+
+    /**
+     * @brief Handle emergency landing procedures.
+     */
+    void handleEmergencyLand();
+
+    /**
+     * @brief Handle changes in GPS state.
+     * @param gpsState The current state of the GPS module.
+     */
+    void handleGpsStateChange(drone_sdk::safetyState gpsState);
+
+    /**
+     * @brief Handle changes in Link state.
+     * @param linkState The current state of the communication link.
+     */
+    void handleLinkStateChange(drone_sdk::safetyState linkState);
+
+    /**
+     * @brief Get the current flight state of the drone.
+     * @return The current flight state as a FlightState enum.
+     */
+    drone_sdk::FlightState getCurrentState() const;
+
+    /**
+     * @brief Subscribe to flight state changes.
+     * @param subscriber A callback function to be triggered on state change.
+     * @return A connection object for managing the subscription.
+     */
+    boost::signals2::connection subscribeToStateChange(
+        const boost::signals2::signal<void(drone_sdk::FlightState)>::slot_type& subscriber);
+
+private:
+    /**
+     * @brief Update the current flight state and notify subscribers.
+     */
+    void updateCurrentState();
+
+    boost::sml::sm<Flight_SM> m_SM; ///< The state machine instance.
+    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED; ///< Current state of the drone.
+
+    // Signal for notifying subscribers of state changes.
     boost::signals2::signal<void(drone_sdk::FlightState)> stateChanged;
-
-    // Public function to trigger takeoff event
-    void triggerTakeoff() {
-        m_SM.process_event(TakeoffEvent());
-        updateCurrentState();
-    }
-
-    // Public function to trigger airborne event
-    void triggerAirborne() {
-        m_SM.process_event(AirborneEvent());
-        updateCurrentState();
-    }
-
-    // Public function to trigger hover event
-    void triggerHover() {
-        m_SM.process_event(HoverEvent());
-        updateCurrentState();
-    }
-
-    // Public function to trigger task completion event
-    void triggerTaskComplete() {
-        m_SM.process_event(TaskCompleteEvent());
-        updateCurrentState();
-    }
-
-    // Public function to trigger safety violation event
-    void triggerSafetyViolation() {
-        m_SM.process_event(SafetyViolationEvent());
-        updateCurrentState();
-    }
-
-    // Public function to process safety violation (e.g., emergency land)
-    void handleEmergencyLand() {
-        m_SM.process_event(SafetyViolationEvent());
-        updateCurrentState();
-    }
-
-    // Function to get the current flight state
-    drone_sdk::FlightState getCurrentState() const {
-        return m_currentState;
-    }
-
-    // Public function to subscribe to state changes
-    boost::signals2::connection subscribeToStateChange(const boost::signals2::signal<void(drone_sdk::FlightState)>::slot_type& subscriber) {
-        return stateChanged.connect(subscriber);
-    }
-
-    // Handle GPS state changes from the SafetyStateMachine
-    void handleGpsStateChange(drone_sdk::safetyState gpsState) {
-        if (gpsState == drone_sdk::safetyState::GPS_NOT_HEALTHY) {
-            //std::cout << "FlightSM: GPS Not Healthy - Triggering Safety Violation" << std::endl;
-            triggerSafetyViolation();
-            updateCurrentState();
-        }
-    }
-
-    // Handle Link state changes from the SafetyStateMachine
-    void handleLinkStateChange(drone_sdk::safetyState linkState) {
-        if (linkState == drone_sdk::safetyState::NOT_CONNECTED) {
-           // std::cout << "FlightSM: Link Disconnected - Triggering Safety Violation" << std::endl;
-            triggerSafetyViolation();
-            updateCurrentState();
-        }
-    }
-
-private:
-    void updateCurrentState() {
-        drone_sdk::FlightState prev_stat= m_currentState;
-        // Update m_currentState based on the current state of the state machine using is()
-        if (m_SM.is(boost::sml::state<Landed>)) {
-            m_currentState = drone_sdk::FlightState::LANDED;
-        } else if (m_SM.is(boost::sml::state<Takeoff>)) {
-            m_currentState = drone_sdk::FlightState::TAKEOFF;
-        } else if (m_SM.is(boost::sml::state<Airborne>)) {
-            m_currentState = drone_sdk::FlightState::AIRBORNE;
-        } else if (m_SM.is(boost::sml::state<Hover>)) {
-            m_currentState = drone_sdk::FlightState::HOVER;
-        } else if (m_SM.is(boost::sml::state<ReturnHome>)) {
-            m_currentState = drone_sdk::FlightState::RETURN_HOME;
-        } else if (m_SM.is(boost::sml::state<EmergencyLand>)) {
-            m_currentState = drone_sdk::FlightState::EMERGENCY_LAND;
-        }
-        if(m_currentState!=prev_stat){
-            stateChanged(m_currentState);
-        }
-    }
-    
-private:
-    boost::sml::sm<Flight_SM> m_SM;
-    drone_sdk::FlightState m_currentState = drone_sdk::FlightState::LANDED;
-
 };
 
 } // namespace flightstatemachine

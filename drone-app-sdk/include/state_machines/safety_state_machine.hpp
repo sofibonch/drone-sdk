@@ -5,135 +5,132 @@
 #include <boost/signals2.hpp>
 #include <iostream>
 
-#include "flight_state_machine.hpp"  // Include the FlightStateMachine header
 #include "gps/gps.hpp"
 #include "link/link.hpp"
 #include "icd.hpp"
 
 namespace safetystatemachine {
 
-// Events
+/**
+ * @brief Event representing the current GPS signal quality.
+ */
 struct GpsSignal {
-    drone_sdk::SignalQuality quality;
+    drone_sdk::SignalQuality quality; /**< Quality of the GPS signal. */
 };
 
+/**
+ * @brief Event representing the current link signal quality.
+ */
 struct LinkSignal {
-    drone_sdk::SignalQuality quality;
+    drone_sdk::SignalQuality quality; /**< Quality of the link signal. */
 };
 
+/**
+ * @brief State representing a healthy GPS signal.
+ */
 struct GpsHealthy {};
+
+/**
+ * @brief State representing a loss of GPS signal.
+ */
 struct GpsNotHealthy {};
+
+/**
+ * @brief State representing a connected communication link.
+ */
 struct ConnectionConnected {};
+
+/**
+ * @brief State representing a disconnected communication link.
+ */
 struct ConnectionDisconnected {};
 
-// Safety_SM Struct that represents the state machine
+/**
+ * @brief Safety state machine logic and transitions.
+ */
 struct Safety_SM {
-    // Define states for the safety state machine
-
-    // State machine logic (transitions, actions, etc.)
+    /**
+     * @brief Defines the transitions and actions of the safety state machine.
+     * @return The state machine transition table.
+     */
     auto operator()() {
         using namespace boost::sml;
 
         return make_transition_table(
-            *state<GpsHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [this] {
-                // GPS signal lost
-            } = state<GpsNotHealthy>,
+            // GPS signal transitions
+            *state<GpsHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] = state<GpsNotHealthy>,
+            state<GpsNotHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] = state<GpsHealthy>,
 
-            state<GpsNotHealthy> + event<GpsSignal> [([](const GpsSignal& gs) { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
-                // GPS signal restored
-            } = state<GpsHealthy>,
-
-            *state<ConnectionConnected> + event<LinkSignal> [([](const LinkSignal& ls) { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] / [this] {
-                // Link signal lost
-            } = state<ConnectionDisconnected>,
-
-            state<ConnectionDisconnected> + event<LinkSignal> [([](const LinkSignal& ls) { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] / [] {
-                // Link signal restored
-            } = state<ConnectionConnected>
+            // Link signal transitions
+            *state<ConnectionConnected> + event<LinkSignal> [([](const LinkSignal& ls) { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] = state<ConnectionDisconnected>,
+            state<ConnectionDisconnected> + event<LinkSignal> [([](const LinkSignal& ls) { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] = state<ConnectionConnected>
         );
     }
 };
 
-// SafetyStateMachine class encapsulates the Safety_SM state machine
+/**
+ * @brief Class for managing the safety state machine.
+ */
 class SafetyStateMachine {
 public:
-    using StateChangeSignal = boost::signals2::signal<void(drone_sdk::safetyState)>;
+    using StateChangeSignal = boost::signals2::signal<void(drone_sdk::safetyState)>; /**< Signal for state changes. */
 
-    explicit SafetyStateMachine()
-        : m_SM()
-        , m_gpsState(drone_sdk::safetyState::GPS_HEALTH)
-        ,  m_linkState(drone_sdk::safetyState::CONNECTED){}
+    /**
+     * @brief Constructor for the SafetyStateMachine.
+     */
+    SafetyStateMachine();
 
-    // Public function to trigger the GPS signal event
-    void handleGpsSignal(const GpsSignal& gpsSignal) {
-        m_SM.process_event(gpsSignal);
-        updateCurrentState();
-    }
+    /**
+     * @brief Handle GPS signal events.
+     * @param gpsSignal The current GPS signal quality.
+     */
+    void handleGpsSignal(const GpsSignal& gpsSignal);
 
-    // Public function to trigger the Link signal event
-    void handleLinkSignal(const LinkSignal& linkSignal) {
-        m_SM.process_event(linkSignal);
-        updateCurrentState();
-    }
+    /**
+     * @brief Handle Link signal events.
+     * @param linkSignal The current link signal quality.
+     */
+    void handleLinkSignal(const LinkSignal& linkSignal);
 
-    // Public function to subscribe to GPS state changes
-    boost::signals2::connection subscribeToGpsState(const StateChangeSignal::slot_type& subscriber) {
-        return m_gpsStateChangeSignal.connect(subscriber);
-    }
+    /**
+     * @brief Subscribe to GPS state changes.
+     * @param subscriber A callback function to be triggered on GPS state changes.
+     * @return A connection object for managing the subscription.
+     */
+    boost::signals2::connection subscribeToGpsState(const StateChangeSignal::slot_type& subscriber);
 
-    // Public function to subscribe to Link state changes
-    boost::signals2::connection subscribeToLinkState(const StateChangeSignal::slot_type& subscriber) {
-        return m_linkStateChangeSignal.connect(subscriber);
-    }
+    /**
+     * @brief Subscribe to Link state changes.
+     * @param subscriber A callback function to be triggered on Link state changes.
+     * @return A connection object for managing the subscription.
+     */
+    boost::signals2::connection subscribeToLinkState(const StateChangeSignal::slot_type& subscriber);
 
-    // Public function to get the current GPS state
-    drone_sdk::safetyState getCurrentGpsState() const {
-        return m_gpsState;
-    }
+    /**
+     * @brief Get the current GPS state.
+     * @return The current GPS state as a drone_sdk::safetyState.
+     */
+    drone_sdk::safetyState getCurrentGpsState() const;
 
-    // Public function to get the current link state
-    drone_sdk::safetyState getCurrentLinkState() const {
-        return m_linkState;
-    }
-private:
-    void updateCurrentState() {
-        // Temporary variables to hold the old state values
-        drone_sdk::safetyState prevGpsState = m_gpsState;
-        drone_sdk::safetyState prevLinkState = m_linkState;
-
-        // Update m_currentState based on the current state of the state machine using is()
-        if (m_SM.is(boost::sml::state<GpsHealthy>)) {
-            m_gpsState = drone_sdk::safetyState::GPS_HEALTH;
-        } else if (m_SM.is(boost::sml::state<GpsNotHealthy>)) {
-            m_gpsState = drone_sdk::safetyState::GPS_NOT_HEALTHY;
-        }
-        if (m_SM.is(boost::sml::state<ConnectionConnected>)) {
-            m_linkState = drone_sdk::safetyState::CONNECTED;
-        } else if (m_SM.is(boost::sml::state<ConnectionDisconnected>)) {
-            m_linkState = drone_sdk::safetyState::NOT_CONNECTED;
-        }
-
-        // Notify only if the state has changed
-        if (m_gpsState != prevGpsState) {
-            m_gpsStateChangeSignal(m_gpsState);
-        }
-
-        if (m_linkState != prevLinkState) {
-            m_linkStateChangeSignal(m_linkState);
-        }
-    }
+    /**
+     * @brief Get the current Link state.
+     * @return The current Link state as a drone_sdk::safetyState.
+     */
+    drone_sdk::safetyState getCurrentLinkState() const;
 
 private:
-    // The state machine instance
-    boost::sml::sm<Safety_SM> m_SM;
+    /**
+     * @brief Update the current states and notify subscribers if changes occur.
+     */
+    void updateCurrentState();
 
-    // Current GPS and link states
-    drone_sdk::safetyState m_gpsState;
-    drone_sdk::safetyState m_linkState;
+private:
+    boost::sml::sm<Safety_SM> m_SM; /**< The underlying state machine object. */
+    drone_sdk::safetyState m_gpsState; /**< Current GPS state. */
+    drone_sdk::safetyState m_linkState; /**< Current Link state. */
 
-    // Signals for GPS and Link state changes
-    StateChangeSignal m_gpsStateChangeSignal;
-    StateChangeSignal m_linkStateChangeSignal;
+    StateChangeSignal m_gpsStateChangeSignal; /**< Signal for GPS state changes. */
+    StateChangeSignal m_linkStateChangeSignal; /**< Signal for Link state changes. */
 };
 
 } // namespace safetystatemachine
