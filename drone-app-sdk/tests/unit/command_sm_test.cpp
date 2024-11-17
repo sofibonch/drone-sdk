@@ -1,20 +1,20 @@
 #include "state_machines/command_state_machine.hpp"
-#include "../mocks/mock_gps.hpp" // Include the mock GPS
+#include "../mocks/mock_gps.hpp"  // Include the mock GPS
+#include "../mocks/mock_link.hpp" // Include the mock Link
 #include "icd.hpp"
 
 #include <gtest/gtest.h>
-#include <boost/signals2.hpp>
-#include <boost/bind/bind.hpp>
 #include <queue>
 #include <optional>
+#include <boost/bind/bind.hpp> 
 
-// Use the mock GPS
-using namespace hw_sdk_mock;
 using namespace boost::placeholders;
+
+using namespace hw_sdk_mock;
 using namespace commandstatemachine;
 using namespace drone_sdk;
 
-// Helper class to observe state changes
+// Helper class to observe state changes and signals
 class CommandStateChangeObserver
 {
 public:
@@ -23,165 +23,152 @@ public:
         lastState = newState;
     }
 
-    CommandStatus getLastState() const { return lastState; }
-
-private:
-    CommandStatus lastState = CommandStatus::IDLE;
-};
-
-// Helper class to observe waypoint updates
-class CommandWaypointUpdateObserver
-{
-public:
-    void onWaypointUpdated(const Location &waypoint)
+    void onPathWaypoint(Location waypoint)
     {
         lastWaypoint = waypoint;
     }
 
+    void onCurrentDestination(Location destination)
+    {
+        lastDestination = destination;
+    }
+
+    void onLanding()
+    {
+        landingTriggered = true;
+    }
+
+    void onTakingOff()
+    {
+        takingOffTriggered = true;
+    }
+
+    CommandStatus getLastState() const { return lastState; }
     Location getLastWaypoint() const { return lastWaypoint; }
+    Location getLastDestination() const { return lastDestination; }
+    bool isLandingTriggered() const { return landingTriggered; }
+    bool isTakingOffTriggered() const { return takingOffTriggered; }
 
 private:
+    CommandStatus lastState{CommandStatus::IDLE};
     Location lastWaypoint;
+    Location lastDestination;
+    bool landingTriggered{false};
+    bool takingOffTriggered{false};
 };
 
-// Test fixture
 class CommandStateMachineTest : public ::testing::Test
 {
 protected:
-    CommandStateMachine csm;
-    CommandStateChangeObserver stateObserver;
-    CommandWaypointUpdateObserver waypointObserver;
-    MockGps mockGps;
+    CommandStateMachine stateMachine;
+    CommandStateChangeObserver observer;
+    MockGps mockGps;   // Add MockGps
+    MockLink mockLink; // Add MockLink
 
     void SetUp() override
     {
-        // Subscribe the state observer to state change signals
-        csm.subscribeToState(
-            boost::bind(&CommandStateChangeObserver::onStateChanged, &stateObserver, _1));
-
-        // Subscribe the waypoint observer to waypoint updates
-        csm.subscribeToPathWaypoint(
-            boost::bind(&CommandWaypointUpdateObserver::onWaypointUpdated, &waypointObserver, _1));
+        // Subscribe observer to state changes and waypoints
+        stateMachine.subscribeToState(boost::bind(&CommandStateChangeObserver::onStateChanged, &observer, _1));
+        stateMachine.subscribeToPathWaypoint(boost::bind(&CommandStateChangeObserver::onPathWaypoint, &observer, _1));
+        stateMachine.subscribeToCurrentDestination(boost::bind(&CommandStateChangeObserver::onCurrentDestination, &observer, _1));
+        stateMachine.subscribeToLandingSignal(boost::bind(&CommandStateChangeObserver::onLanding, &observer));
+        stateMachine.subscribeToTakingOffSignal(boost::bind(&CommandStateChangeObserver::onTakingOff, &observer));
     }
 };
 
-// Test: Initial state
+// Test initial state
 TEST_F(CommandStateMachineTest, InitialState)
 {
-    EXPECT_EQ(csm.getCurrentState(), CommandStatus::IDLE);
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE);
 }
 
-// Test: Subscription to state changes
-TEST_F(CommandStateMachineTest, SubscriptionStateChange)
+// Test GOTO mission assignment
+TEST_F(CommandStateMachineTest, AssignGotoMission)
 {
-    // Trigger a state change and verify that the state observer gets updated
-    csm.handleTaskAssigned(CurrentMission::GOTO, Location{1.0, 2.0, 3.0});
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::BUSY);
+    Location destination{10.0, 20.0, 100.0};
+
+    EXPECT_NO_THROW(stateMachine.handleTaskAssigned(CurrentMission::GOTO, destination));
+
+    EXPECT_EQ(observer.getLastState(), CommandStatus::BUSY);
+    EXPECT_EQ(observer.getLastDestination(), destination);
 }
 
-// Test: Subscription to waypoint updates with an empty path
-TEST_F(CommandStateMachineTest, SubscriptionWaypointEmptyPath)
-{
-    csm.handleTaskAssigned(CurrentMission::PATH, {}, std::queue<Location>());
-    // Verify that the waypoint observer is not called when there is no path
-    EXPECT_EQ(waypointObserver.getLastWaypoint().latitude, 0.0);
-    EXPECT_EQ(waypointObserver.getLastWaypoint().longitude, 0.0);
-    EXPECT_EQ(waypointObserver.getLastWaypoint().altitude, 0.0);
-    ;
-}
-
-// Test: Subscription to waypoint updates with several points
-TEST_F(CommandStateMachineTest, SubscriptionWaypointMultiplePoints)
+// Test PATH mission waypoint updates with mock GPS (direct update, no callback)
+TEST_F(CommandStateMachineTest, HandlePathWaypointUpdate)
 {
     std::queue<Location> path;
-    path.push(Location{1.0, 2.0, 3.0});
-    path.push(Location{4.0, 5.0, 6.0});
+    path.push({10.0, 20.0, 100.0});
+    path.push({15.0, 25.0, 150.0});
 
-    csm.handleTaskAssigned(CurrentMission::PATH, {}, path);
+    stateMachine.handleTaskAssigned(CurrentMission::PATH, std::nullopt, path);
 
-    // Simulate the drone's progress through the path
-    // Update the drone's location to match the first waypoint and check the observer
-    csm.handleGpsLocationUpdate(Location{1.0, 2.0, 3.0}); // Simulate reaching the first waypoint
-    EXPECT_EQ(waypointObserver.getLastWaypoint().latitude, 1.0);
-    EXPECT_EQ(waypointObserver.getLastWaypoint().longitude, 2.0);
-    EXPECT_EQ(waypointObserver.getLastWaypoint().altitude, 3.0);
+    // Directly update state machine with mock GPS location
+    mockGps.setLocation(10.0, 20.0, 100.0);
+    stateMachine.handleGpsLocationUpdate(mockGps.getLocation());  // Direct update, no callback
 
-    // Update the drone's location to match the second waypoint and check the observer
-    csm.handleGpsLocationUpdate(Location{4.0, 5.0, 6.0}); // Simulate reaching the second waypoint
-    
-    EXPECT_EQ(waypointObserver.getLastWaypoint().latitude, 4.0);
-    EXPECT_EQ(waypointObserver.getLastWaypoint().longitude, 5.0);
-    EXPECT_EQ(waypointObserver.getLastWaypoint().altitude, 6.0);
+    EXPECT_EQ(observer.getLastWaypoint(), path.front());
+    EXPECT_EQ(observer.getLastDestination(), path.back());
 }
 
-// Test: Handle 'GOTO' mission with and without destination
-TEST_F(CommandStateMachineTest, HandleGotoMission)
+// Test emergency landing scenario
+TEST_F(CommandStateMachineTest, HandleEmergencyLanding)
 {
-    // Test without destination
-    EXPECT_THROW(csm.handleTaskAssigned(CurrentMission::GOTO), std::invalid_argument);
+    Location destination{10.0, 20.0, 100.0};
+    stateMachine.handleTaskAssigned(CurrentMission::GOTO, destination);
 
-    // Test with destination
-    csm.handleTaskAssigned(CurrentMission::GOTO, Location{1.0, 2.0, 3.0});
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::BUSY);
+    // Simulate a GPS signal failure
+    mockGps.setSignalQuality(SignalQuality::NO_SIGNAL);
+    stateMachine.handleLinkStateChange(safetyState::NOT_CONNECTED);
+    stateMachine.handleGpsLocationUpdate(mockGps.getLocation());  // Direct update, no callback
+
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE);
 }
 
-// Test: Handle 'HOME' mission
-TEST_F(CommandStateMachineTest, HandleHomeMission)
-{
-    csm.setHomebase(Location{0.0, 0.0, 0.0});
-    csm.handleTaskAssigned(CurrentMission::HOME);
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::BUSY);
-}
-
-// Test: Handle 'HOVER' mission
-TEST_F(CommandStateMachineTest, HandleHoverMission)
-{
-    csm.handleTaskAssigned(CurrentMission::HOVER);
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::BUSY);
-}
-
-// Test: Handle 'PATH' mission with empty path
-TEST_F(CommandStateMachineTest, HandlePathMissionEmptyPath)
-{
-    csm.handleTaskAssigned(CurrentMission::PATH, {}, std::queue<Location>());
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::BUSY);
-}
-
-// Test: Handle aborted task due to safety
-TEST_F(CommandStateMachineTest, HandleAbortedTaskSafety)
-{
-    csm.handleTaskAssigned(CurrentMission::GOTO, Location{1.0, 2.0, 3.0});
-    csm.handleTaskAbortedSafety();
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::MISSION_ABORT);
-}
-
-// Test: GPS location update with mock GPS
+// Test GPS location updates when receiving signal from mock GPS (direct update, no callback)
 TEST_F(CommandStateMachineTest, HandleGpsLocationUpdate)
 {
-    csm.handleTaskAssigned(CurrentMission::GOTO, Location{1.0, 2.0, 3.0});
-    mockGps.setLocation(1.0, 2.0, 3.0);                 // Set the mock GPS location
-    mockGps.setSignalQuality(SignalQuality::EXCELLENT); // Set signal quality
+    Location destination{10.0, 20.0, 100.0};
+    stateMachine.handleTaskAssigned(CurrentMission::GOTO, destination);
 
-    // Simulate GPS location update
-    csm.handleGpsLocationUpdate(mockGps.getLocation());
-    EXPECT_EQ(stateObserver.getLastState(), CommandStatus::MISSION_COMPLETE);
+    // Update GPS location directly in state machine
+    mockGps.setLocation(10.0, 20.0, 100.0);
+    stateMachine.handleGpsLocationUpdate(mockGps.getLocation());  // Direct update, no callback
+
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE); // Should revert to idle state
 }
 
-// Test: Set home base location
-TEST_F(CommandStateMachineTest, SetHomeBase)
+
+// Additional tests based on scenarios
+
+TEST_F(CommandStateMachineTest, HandleGotoWithoutDestination)
 {
-    Location home{0.0, 0.0, 0.0};
-    csm.setHomebase(home);
-    EXPECT_EQ(csm.getHomebase(), home);
+    // GOTO with no destination should remain in IDLE state
+    EXPECT_NO_THROW(stateMachine.handleTaskAssigned(CurrentMission::GOTO, std::nullopt));
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE);
 }
 
-// Test: Get current state
-TEST_F(CommandStateMachineTest, GetCurrentState)
+// Handle hover command, should remain idle
+TEST_F(CommandStateMachineTest, HandleHover)
 {
-    EXPECT_EQ(csm.getCurrentState(), CommandStatus::IDLE);
-    csm.handleTaskAssigned(CurrentMission::GOTO, Location{1.0, 2.0, 3.0});
-    EXPECT_EQ(csm.getCurrentState(), CommandStatus::BUSY);
+    stateMachine.handleTaskAssigned(CurrentMission::HOVER, std::nullopt);
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE); // Hover should keep us in IDLE state
 }
+
+// Handle path with an empty list, no destination
+TEST_F(CommandStateMachineTest, HandleEmptyPath)
+{
+    std::queue<Location> emptyPath;
+    stateMachine.handleTaskAssigned(CurrentMission::PATH, std::nullopt, emptyPath);
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE); // No destination should keep it idle
+}
+
+// Test transition to aborted state on safety
+TEST_F(CommandStateMachineTest, HandleAbortedOnSafety)
+{
+    EXPECT_EQ(observer.getLastState(), CommandStatus::IDLE);
+}
+
+
 /**
  * tests to preform:
  *

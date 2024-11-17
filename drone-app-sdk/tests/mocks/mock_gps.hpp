@@ -10,8 +10,10 @@ namespace hw_sdk_mock
     class MockGps
     {
     public:
+        
         // Constructor
-        MockGps() : m_location({0.0, 0.0, 0.0}), m_signalQuality(drone_sdk::SignalQuality::NO_SIGNAL) {}
+        MockGps() 
+            : m_location({0.0, 0.0, 0.0}), m_signalQuality(drone_sdk::SignalQuality::NO_SIGNAL) {}
 
         // Destructor
         ~MockGps() = default;
@@ -44,7 +46,8 @@ namespace hw_sdk_mock
         void simulateGpsUpdate()
         {
             // Example callback invocation (you can pass a callback function from the subscriber)
-            if (m_locationCallback) {
+            if (m_locationCallback)
+            {
                 m_locationCallback(m_location, m_signalQuality);
             }
         }
@@ -56,8 +59,8 @@ namespace hw_sdk_mock
         }
 
     private:
-        drone_sdk::Location m_location;           // Current GPS location (ICD struct)
-        drone_sdk::SignalQuality m_signalQuality; // Current GPS signal quality (ICD enum)
+        drone_sdk::Location m_location;                  // Current GPS location (ICD struct)
+        drone_sdk::SignalQuality m_signalQuality;        // Current GPS signal quality (ICD enum)
         drone_sdk::GpsCallback::Type m_locationCallback; // Callback function for location updates
     };
 

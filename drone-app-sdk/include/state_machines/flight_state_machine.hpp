@@ -17,6 +17,7 @@ struct AirborneEvent {};     ///< Triggered when the drone becomes airborne.
 struct HoverEvent {};        ///< Triggered to transition to hover mode.
 struct TaskCompleteEvent {}; ///< Triggered when the drone completes its task.
 struct SafetyViolationEvent {}; ///< Triggered during a safety violation.
+struct LandEvent {};///< Trrigerd when preformd landing after go home/ safty violation.
 
 /**
  * @brief States for the FlightStateMachine
@@ -48,16 +49,20 @@ struct Flight_SM {
             state<Takeoff> + event<AirborneEvent> = state<Airborne>,
             state<Airborne> + event<HoverEvent> = state<Hover>,
             state<Hover> + event<AirborneEvent> = state<Airborne>,
-            state<Airborne> + event<TaskCompleteEvent> = state<ReturnHome>,
+            state<Airborne> + event<TaskCompleteEvent> = state<Hover>,
+
             state<Landed> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<Takeoff> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<Airborne> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<Hover> + event<SafetyViolationEvent> = state<EmergencyLand>,
             state<ReturnHome> + event<SafetyViolationEvent> = state<EmergencyLand>,
+            state<ReturnHome> + event<LandEvent> = state<Landed>,
+
             state<EmergencyLand> + event<TaskCompleteEvent> = state<Landed>,
             state<EmergencyLand> + event<AirborneEvent> = state<EmergencyLand>,
             state<EmergencyLand> + event<HoverEvent> = state<EmergencyLand>,
-            state<EmergencyLand> + event<TakeoffEvent> = state<EmergencyLand>
+            state<EmergencyLand> + event<TakeoffEvent> = state<EmergencyLand>,
+            state<EmergencyLand> + event<LandEvent> = state<Landed>
         );
     }
 };
@@ -102,23 +107,25 @@ public:
      */
     void handleEmergencyLand();
 
-    /**
-     * @brief Handle changes in GPS state.
-     * @param gpsState The current state of the GPS module.
-     */
-    void handleGpsStateChange(drone_sdk::safetyState gpsState);
-
-    /**
-     * @brief Handle changes in Link state.
-     * @param linkState The current state of the communication link.
-     */
-    void handleLinkStateChange(drone_sdk::safetyState linkState);
-
+//    /**
+//     * @brief Handle changes in GPS state.
+//     * @param gpsState The current state of the GPS module.
+//     */
+//    void handleGpsStateChange(drone_sdk::safetyState gpsState);
+//
+//    /**
+//     * @brief Handle changes in Link state.
+//     * @param linkState The current state of the communication link.
+//     */
+//    void handleLinkStateChange(drone_sdk::safetyState linkState);
+//
+    void handleCommandStateChange(drone_sdk::CommandStatus commadState);
     /**
      * @brief Get the current flight state of the drone.
      * @return The current flight state as a FlightState enum.
      */
     drone_sdk::FlightState getCurrentState() const;
+
 
     /**
      * @brief Subscribe to flight state changes.

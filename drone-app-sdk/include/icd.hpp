@@ -1,36 +1,66 @@
 #ifndef ICD_HPP
 #define ICD_HPP
 
-namespace drone_sdk {
+namespace drone_sdk
+{
 
-    enum class LocationField {
+    enum class LocationField
+    {
         LATITUDE,
         LONGITUDE,
         ALTITUDE
     };
 
-    struct Altitude{
+    struct Altitude
+    {
         double altitude;
     };
-    
-    enum class safetyState {
-        GPS_HEALTH =0,
+
+    enum class safetyState
+    {
+        GPS_HEALTH = 0,
         GPS_NOT_HEALTHY,
         CONNECTED,
         NOT_CONNECTED
     };
-    
-    struct Location {
-        double latitude;
-        double longitude;
-        double altitude;
 
-        bool operator==(const Location& other) const {
+struct Location
+{
+    double latitude;
+    double longitude;
+    double altitude;
+
+    // Default constructor
+    Location() : latitude(0.0), longitude(0.0), altitude(0.0) {}
+
+    // Constructor with parameters
+    Location(double lat, double lon, double alt)
+        : latitude(lat), longitude(lon), altitude(alt) {}
+
+    // Copy constructor
+    Location(const Location &other)
+        : latitude(other.latitude), longitude(other.longitude), altitude(other.altitude) {}
+
+    // Assignment operator
+    Location &operator=(const Location &other)
+    {
+        if (this != &other) { // Check for self-assignment
+            latitude = other.latitude;
+            longitude = other.longitude;
+            altitude = other.altitude;
+        }
+        return *this;
+    }
+
+    // Equality operator
+    bool operator==(const Location &other) const
+    {
         return latitude == other.latitude &&
                longitude == other.longitude &&
                altitude == other.altitude;
-        }   
-    };
+    }
+};
+
 
     enum class SignalQuality
     {
@@ -40,9 +70,10 @@ namespace drone_sdk {
         GOOD,
         EXCELLENT
     };
-    
-    enum class FlightControllerStatus {
-        SUCCESS=0,
+
+    enum class FlightControllerStatus
+    {
+        SUCCESS = 0,
         EMERGENCY_LAND,
         EMERGENCY_GO_HOME,
         EMERGENCY_ABORTED_MISSION,
@@ -51,15 +82,23 @@ namespace drone_sdk {
         INVALID_COMMAND,
         UNKNOWN_ERROR
     };
-    
-    struct GpsCallback {
-        using Type = void(*)(Location, SignalQuality);
+
+    struct GpsCallback
+    {
+        using Type = void (*)(Location, SignalQuality);
     };
 
-    struct LinkCallback {
-        using Type = void(*)(SignalQuality);
+    struct GpsLocCallback
+    {
+        using Type = void (*)(Location);
     };
-    enum class FlightState {
+
+    struct LinkCallback
+    {
+        using Type = void (*)(SignalQuality);
+    };
+    enum class FlightState
+    {
         LANDED,         // Drone is grounded and idle, ready to begin tasks.
         TAKEOFF,        // Drone ascends to a defined operational altitude.
         AIRBORNE,       // Drone is executing tasks in-flight.
@@ -68,20 +107,20 @@ namespace drone_sdk {
         RETURN_HOME     // Drone returns to its home location, typically after completing a task.
     };
 
-    enum class CurrentMission{
-        IDLE=0,
+    enum class CurrentMission
+    {
+        LANDED = 0,
         GOTO,
         PATH,
-        HOME,
-        LAND,
         HOVER,
+        HOME,
         EMERGENCY
     };
 
-    enum class CommandStatus{
-        IDLE=0,
+    enum class CommandStatus
+    {
+        IDLE = 0,
         BUSY,
-        MISSION_COMPLETE,
         MISSION_ABORT
     };
 } // namespace drone_sdk

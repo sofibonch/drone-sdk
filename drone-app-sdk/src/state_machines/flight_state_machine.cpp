@@ -36,15 +36,32 @@ void FlightStateMachine::handleEmergencyLand() {
     updateCurrentState();
 }
 
-void FlightStateMachine::handleGpsStateChange(drone_sdk::safetyState gpsState) {
-    if (gpsState == drone_sdk::safetyState::GPS_NOT_HEALTHY) {
-        triggerSafetyViolation();
-    }
-}
+//void FlightStateMachine::handleGpsStateChange(drone_sdk::safetyState gpsState) {
+//    if (gpsState == drone_sdk::safetyState::GPS_NOT_HEALTHY) {
+//        triggerSafetyViolation();
+//    }
+//}
+//
+//void FlightStateMachine::handleLinkStateChange(drone_sdk::safetyState linkState) {
+//    if (linkState == drone_sdk::safetyState::NOT_CONNECTED) {
+//        triggerSafetyViolation();
+//    }
+//}
 
-void FlightStateMachine::handleLinkStateChange(drone_sdk::safetyState linkState) {
-    if (linkState == drone_sdk::safetyState::NOT_CONNECTED) {
+void FlightStateMachine::handleCommandStateChange(drone_sdk::CommandStatus commadState){
+    switch (commadState)
+    {
+    //change state to idle, task is completed- stay in hover position
+    case drone_sdk::CommandStatus::IDLE:
+        triggerHover();
+        break;
+    case drone_sdk::CommandStatus::BUSY:
+        triggerAirborne();
+        break;
+    case drone_sdk::CommandStatus::MISSION_ABORT:
         triggerSafetyViolation();
+    default:
+        break;
     }
 }
 
