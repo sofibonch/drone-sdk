@@ -205,3 +205,29 @@ target_link_libraries(safety_sm_test PRIVATE
     link
     mocks
 )
+
+
+#---sm manager test---
+add_executable(manager_sm_test
+    tests/unit/manager_sm_test.cpp
+    src/state_machines/safety_state_machine.cpp
+    src/state_machines/command_state_machine.cpp
+    src/state_machines/flight_state_machine.cpp)
+
+# Include directories and link libraries for the SafetyStateMachine test
+target_include_directories(manager_sm_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
+    ${PROJECT_SOURCE_DIR}/gps/include
+    ${PROJECT_SOURCE_DIR}/link/include
+    ${Boost_INCLUDE_DIRS}
+    external/googletest/include
+)
+
+target_link_libraries(manager_sm_test PRIVATE
+    gtest
+    gtest_main
+    flight-controller
+    gps
+    link
+    mocks
+)

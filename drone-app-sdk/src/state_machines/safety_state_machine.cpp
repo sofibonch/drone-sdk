@@ -8,14 +8,14 @@ SafetyStateMachine::SafetyStateMachine()
       m_linkState(drone_sdk::safetyState::CONNECTED) {}
 
 // Handle GPS signal events
-void SafetyStateMachine::handleGpsSignal(const GpsSignal& gpsSignal) {
-    m_SM.process_event(gpsSignal);
+void SafetyStateMachine::handleGpsSignal(const drone_sdk::SignalQuality& gpsSignal) {
+    m_SM.process_event(gpsSignal==drone_sdk::SignalQuality::NO_SIGNAL? drone_sdk::safetyState::GPS_NOT_HEALTHY :drone_sdk::safetyState::GPS_HEALTH);
     updateCurrentState();
 }
 
 // Handle Link signal events
-void SafetyStateMachine::handleLinkSignal(const LinkSignal& linkSignal) {
-    m_SM.process_event(linkSignal);
+void SafetyStateMachine::handleLinkSignal(const drone_sdk::SignalQuality& linkSignal) {
+    m_SM.process_event(linkSignal==drone_sdk::SignalQuality::NO_SIGNAL? drone_sdk::safetyState::NOT_CONNECTED:drone_sdk::safetyState::CONNECTED);
     updateCurrentState();
 }
 
