@@ -99,7 +99,7 @@ struct Location
     };
     enum class FlightState
     {
-        LANDED,         // Drone is grounded and idle, ready to begin tasks.
+        LANDED=0,         // Drone is grounded and idle, ready to begin tasks.
         TAKEOFF,        // Drone ascends to a defined operational altitude.
         AIRBORNE,       // Drone is executing tasks in-flight.
         HOVER,          // Drone maintains a stable hover, waiting or observing.

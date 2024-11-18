@@ -19,7 +19,10 @@ namespace flightstatemachine
         {
             triggerTakeoff();
         }
-        m_SM.process_event(AirborneEvent());
+        else
+        {
+            m_SM.process_event(AirborneEvent());
+        }
         updateCurrentState();
     }
 
@@ -38,7 +41,11 @@ namespace flightstatemachine
         m_SM.process_event(TaskCompleteEvent());
         updateCurrentState();
     }
-
+    void FlightStateMachine::triggerReturnHome()
+    {
+        m_SM.process_event(ReturnHomeEvent());
+        updateCurrentState();
+    }
     void FlightStateMachine::triggerSafetyViolation()
     {
         m_SM.process_event(SafetyViolationEvent());
@@ -91,7 +98,7 @@ namespace flightstatemachine
             triggerHover();
             break;
         case drone_sdk::CurrentMission::HOME:
-            triggerAirborne();
+            triggerReturnHome();
             break;
         case drone_sdk::CurrentMission::EMERGENCY:
             triggerSafetyViolation();

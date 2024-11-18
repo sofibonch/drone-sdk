@@ -36,6 +36,7 @@ namespace commandstatemachine
             break;
 
         case drone_sdk::CurrentMission::HOME:
+            std::cout << "GOING HOMW!!!!" << std::endl;
             m_destination = m_home;
             break;
         case drone_sdk::CurrentMission::HOVER:
@@ -44,7 +45,7 @@ namespace commandstatemachine
                 return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
             }
             takingOffCheck();
-            m_destination= m_currLocation;
+            m_destination = m_currLocation;
             handleTaskCompleted();
             break;
         case drone_sdk::CurrentMission::PATH:
@@ -59,6 +60,7 @@ namespace commandstatemachine
         default:
             return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
         }
+        m_missionChangeSignal(newMission);
         return drone_sdk::FlightControllerStatus::SUCCESS;
     }
 
@@ -99,13 +101,18 @@ namespace commandstatemachine
         return m_takingOffSignal.connect(subscriber);
     }
 
+    boost::signals2::connection CommandStateMachine::subscribeToMission(const MissionChangeSignal::slot_type &subscriber)
+    {
+        return m_missionChangeSignal.connect(subscriber);
+    }
+
     // Handle GPS location updates
     void CommandStateMachine::handleGpsLocationUpdate(const drone_sdk::Location &newLocation)
     {
         m_currLocation = newLocation;
         if (m_currLocation == m_destination)
         {
-            //std::cout<<"reached destination!!!!"<<m_currLocation.altitude<<std::endl;
+            // std::cout<<"reached destination!!!!"<<m_currLocation.altitude<<std::endl;
             switch (m_currMission)
             {
             case drone_sdk::CurrentMission::GOTO:
@@ -186,10 +193,7 @@ namespace commandstatemachine
             m_currentState = drone_sdk::CommandStatus::MISSION_ABORT;
         }
 
-        //        if (m_currentState != prevState)
-        //        {
         m_stateChangeSignal(m_currentState);
-        //        }
     }
 
     // Update current mission

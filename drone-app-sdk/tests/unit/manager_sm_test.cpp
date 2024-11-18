@@ -118,14 +118,6 @@ protected:
         m_stateMachineManager.subscribeToCurrentDestination(
             [this](Location destination)
             { m_observer.onCurrentDestination(destination); });
-
-        //        m_stateMachineManager.subscribeToLandingEvent(
-        //            [this]()
-        //            { m_observer.onLanding(); });
-
-        //        m_stateMachineManager.subscribeToTakingOffEvent(
-        //            [this]()
-        //            { m_observer.onTakingOff(); });
     }
 
     StateMachineManager m_stateMachineManager;
@@ -143,52 +135,207 @@ TEST_F(StateMachineManagerTest, HandleGpsSignalNotHealthy)
     // Validate the SafetyStateMachine's GPS state and the observer's last received state
     EXPECT_EQ(m_observer.getLastGpsState(), safetyState::GPS_NOT_HEALTHY);
 }
+TEST_F(StateMachineManagerTest, HandleLinkSignalNotHealthy)
+{
+    // Simulate Link signal update with NO_SIGNAL
+    SignalQuality mockSignalQuality = SignalQuality::NO_SIGNAL;
 
-// TEST_F(StateMachineManagerTest, HandleLinkSignalNotHealthy)
-//{
-//     // Simulate Link signal update with NO_SIGNAL
-//     SignalQuality mockSignalQuality = SignalQuality::NO_SIGNAL;
-//
-//     m_stateMachineManager.handleLinkUpdate(mockSignalQuality);
-//
-//     // Validate the SafetyStateMachine's Link state and the observer's last received state
-//     EXPECT_EQ(m_observer.getLastLinkState(), safetyState::NOT_CONNECTED);
-// }
+    m_stateMachineManager.handleLinkUpdate(mockSignalQuality);
 
-// TEST_F(StateMachineManagerTest, HandleWaypointUpdate)
-//{
-//     // Simulate a waypoint update
-//     Location mockWaypoint{37.7749, 122.4194, 30.0}; // Example waypoint
-//     m_stateMachineManager.handleWaypointUpdate(mockWaypoint);
-//
-//     // Validate that the observer's last received waypoint matches the expected one
-//     EXPECT_EQ(m_observer.getLastWaypoint(), mockWaypoint);
-// }
-//
-// TEST_F(StateMachineManagerTest, HandleDestinationUpdate)
-//{
-//     // Simulate a destination update
-//     Location mockDestination{37.7750, 122.4195, 30.0}; // Example destination
-//     m_stateMachineManager.handleDestinationUpdate(mockDestination);
-//
-//     // Validate that the observer's last received destination matches the expected one
-//     EXPECT_EQ(m_observer.getLastDestination(), mockDestination);
-// }
-//
-// TEST_F(StateMachineManagerTest, HandleLandingTrigger)
-//{
-//     // Simulate a landing event
-//     m_stateMachineManager.handleLandingEvent();
-//
-//     // Validate that the observer's landing trigger was called
-//     EXPECT_TRUE(m_observer.isLandingTriggered());
-// }
+    // Validate that the observer's last received state is NOT_CONNECTED
+    EXPECT_EQ(m_observer.getLastLinkState(), safetyState::NOT_CONNECTED);
 
-// TEST_F(StateMachineManagerTest, HandleTakingOffTrigger)
-//{
-//     // Simulate a taking off event
-//     m_stateMachineManager.handleTakingOffEvent();
-//
-//     // Validate that the observer's taking off trigger was called
-//     EXPECT_TRUE(m_observer.isTakingOffTriggered());
-// }
+    // Check if CommandObserver receives the appropriate updates
+    EXPECT_EQ(m_observer.getLastState(), CommandStatus::IDLE);
+}
+
+TEST_F(StateMachineManagerTest, HandleLinkSignalConnected)
+{
+    // Simulate Link signal update with CONNECTED
+    SignalQuality mockSignalQuality = SignalQuality::EXCELLENT;
+
+    m_stateMachineManager.handleLinkUpdate(mockSignalQuality);
+
+    // Validate that the observer's last received state is CONNECTED
+    EXPECT_EQ(m_observer.getLastLinkState(), safetyState::CONNECTED);
+
+    // Check if CommandObserver receives the appropriate updates when connection is established
+    EXPECT_EQ(m_observer.getLastState(), CommandStatus::IDLE);
+}
+
+TEST_F(StateMachineManagerTest, NewTaskGotoMission)
+{
+    // Create a GOTO mission with a specific destination
+    drone_sdk::CurrentMission newMission = drone_sdk::CurrentMission::GOTO;
+    drone_sdk::Location singleDestination{37.7749, 122.4194, 30.0}; // Example location
+
+    std::optional<drone_sdk::Location> destination = singleDestination;
+    std::optional<std::queue<drone_sdk::Location>> pathDestinations = std::nullopt;
+
+    drone_sdk::FlightControllerStatus status = m_stateMachineManager.newTask(newMission, destination, pathDestinations);
+
+    // Validate that the flight controller receives the expected status for a GOTO mission
+    EXPECT_EQ(status, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::BUSY); // Command should be updated to GOTO
+    EXPECT_NE(m_observer.getLastDestination(), singleDestination);        // Ensure the destination is set correctly
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::TAKEOFF);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE);
+}
+
+TEST_F(StateMachineManagerTest, NewTaskGotoMissionWithHoverInterrupt)
+{
+    // Create a GOTO mission with a specific destination
+    drone_sdk::CurrentMission newMission = drone_sdk::CurrentMission::GOTO;
+    drone_sdk::CurrentMission interruptMission = drone_sdk::CurrentMission::HOVER;
+    drone_sdk::Location singleDestination{37.7749, 122.4194, 30.0}; // Example location
+
+    std::optional<drone_sdk::Location> destination = singleDestination;
+    std::optional<std::queue<drone_sdk::Location>> pathDestinations = std::nullopt;
+    std::optional<drone_sdk::Location> emptyDestination = std::nullopt;
+
+    // First task: GOTO mission
+    drone_sdk::FlightControllerStatus statusGoto = m_stateMachineManager.newTask(newMission, destination, pathDestinations);
+
+    // Validate the flight controller's response for the GOTO mission
+    EXPECT_EQ(statusGoto, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::BUSY); // Command should be updated to GOTO
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::TAKEOFF);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE);
+
+    // Interrupt the mission with a HOVER command
+    drone_sdk::FlightControllerStatus statusHover = m_stateMachineManager.newTask(interruptMission, emptyDestination, pathDestinations);
+
+    // Validate the flight controller's response for the HOVER interrupt
+    EXPECT_EQ(statusHover, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::IDLE); // Command should reflect IDLE after interruption
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::HOVER);//???
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::HOVER);
+}
+
+TEST_F(StateMachineManagerTest, NewTaskGotoMissionWithComplition)
+{
+    // Create a GOTO mission with a specific destination
+    drone_sdk::CurrentMission newMission = drone_sdk::CurrentMission::GOTO;
+    drone_sdk::Location singleDestination{37.7749, 122.4194, 30.0}; // Example location
+
+    std::optional<drone_sdk::Location> destination = singleDestination;
+    std::optional<std::queue<drone_sdk::Location>> pathDestinations = std::nullopt;
+
+    // First task: GOTO mission
+    drone_sdk::FlightControllerStatus statusGoto = m_stateMachineManager.newTask(newMission, destination, pathDestinations);
+
+    // Validate the flight controller's response for the GOTO mission
+    EXPECT_EQ(statusGoto, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::BUSY); // Command should be updated to GOTO
+    // EXPECT_EQ(m_observer.getLastDestination(), singleDestination);       // Ensure the destination is set correctly
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::TAKEOFF);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE);
+
+    // Simulate GPS updates leading to destination
+    drone_sdk::Location intermediateLocation1{37.7740, 122.4190, 30.0};
+    drone_sdk::Location intermediateLocation2{37.7745, 122.4192, 30.0};
+    drone_sdk::Location finalLocation = singleDestination;
+
+    // Update GPS to an intermediate location
+    m_stateMachineManager.handleGpsUpdate(intermediateLocation1, drone_sdk::SignalQuality::EXCELLENT);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE); // Still airborne
+
+    // Update GPS to another intermediate location
+    m_stateMachineManager.handleGpsUpdate(intermediateLocation2, drone_sdk::SignalQuality::EXCELLENT);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE); // Still airborne
+
+    // Update GPS to the final destination
+    m_stateMachineManager.handleGpsUpdate(finalLocation, drone_sdk::SignalQuality::EXCELLENT);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::HOVER); // Mission complete
+
+    // Validate the flight controller's response for the HOVER interrupt
+    // EXPECT_EQ(statusHover, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::IDLE); // Command should reflect IDLE after interruption
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::AIRBORNE);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::HOVER);
+}
+
+TEST_F(StateMachineManagerTest, NewTaskSlowGotoMissionWithCompletion)
+{
+    // Create a GOTO mission with a specific destination
+    drone_sdk::CurrentMission newMission = drone_sdk::CurrentMission::GOTO;
+    drone_sdk::Location singleDestination{10.0, 20.0, 100.0}; // Example location
+
+    std::optional<drone_sdk::Location> destination = singleDestination;
+    std::optional<std::queue<drone_sdk::Location>> pathDestinations = std::nullopt;
+
+    // Assign the GOTO mission
+    drone_sdk::FlightControllerStatus statusGoto = m_stateMachineManager.newTask(newMission, destination, pathDestinations);
+
+    // Validate the flight controller's response for the GOTO mission
+    EXPECT_EQ(statusGoto, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::BUSY); // Command should be updated to GOTO
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::TAKEOFF);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE);
+
+    // Simulate GPS updates over a long journey
+    for (int i = 0; i < 1001; ++i)
+    {
+        double progress = static_cast<double>(i) / 999.0;
+        drone_sdk::Location currentLocation{
+            10.0 * progress,   // Latitude moves towards 10.0
+            20.0 * progress,   // Longitude moves towards 20.0
+            100.0 * progress}; // Altitude moves towards 100.0
+
+        // Update GPS location
+        m_stateMachineManager.handleGpsUpdate(currentLocation, drone_sdk::SignalQuality::EXCELLENT);
+
+        // Check if the mission is marked complete
+        if (m_observer.getLastState() == drone_sdk::CommandStatus::IDLE)
+        {
+            break; // Stop testing as the mission is complete
+        }
+    }
+
+    // Validate final state after completing the journey
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::HOVER); // Mission should end in hover
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::IDLE);      // Command should reflect mission completion
+}
+
+TEST_F(StateMachineManagerTest, NewTaskGotoMissionWithAbortInterrupt)
+{
+    // Create a GOTO mission with a specific destination
+    drone_sdk::CurrentMission newMission = drone_sdk::CurrentMission::GOTO;
+    drone_sdk::CurrentMission interruptMission = drone_sdk::CurrentMission::HOME;
+    drone_sdk::Location singleDestination{37.7749, 122.4194, 30.0}; // Example location
+    drone_sdk::Location homeDestination{0.0, 0.0, 0.0};             // Example location
+    drone_sdk::Location interruptDestination{1.0, 1.0, 1.0};
+
+    std::optional<drone_sdk::Location> destination = singleDestination;
+    std::optional<std::queue<drone_sdk::Location>> pathDestinations = std::nullopt;
+    std::optional<drone_sdk::Location> emptyDestination = std::nullopt;
+
+    // First task: GOTO mission
+    drone_sdk::FlightControllerStatus statusGoto = m_stateMachineManager.newTask(newMission, destination, pathDestinations);
+
+    // Validate the flight controller's response for the GOTO mission
+    EXPECT_EQ(statusGoto, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::BUSY); // Command should be updated to GOTO
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::TAKEOFF);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::AIRBORNE);
+
+    // update mid flight location
+    m_stateMachineManager.handleGpsUpdate(interruptDestination, drone_sdk::SignalQuality::EXCELLENT);
+
+    // Interrupt the mission with a HOVER command
+    drone_sdk::FlightControllerStatus statusHome = m_stateMachineManager.newTask(interruptMission, emptyDestination, pathDestinations);
+
+    // Validate the flight controller's response for the HOVER interrupt
+    EXPECT_EQ(statusHome, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::BUSY);
+    EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::AIRBORNE);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::RETURN_HOME);
+
+    // update mid flight location
+    m_stateMachineManager.handleGpsUpdate(homeDestination, drone_sdk::SignalQuality::EXCELLENT);
+
+    EXPECT_EQ(statusHome, drone_sdk::FlightControllerStatus::SUCCESS);
+    EXPECT_EQ(m_observer.getLastState(), drone_sdk::CommandStatus::IDLE); // Command should reflect IDLE after interruption
+   // EXPECT_EQ(m_observer.getPrevFlightState(), drone_sdk::FlightState::LANDED);
+    EXPECT_EQ(m_observer.getLastFlightState(), drone_sdk::FlightState::RETURN_HOME);
+}

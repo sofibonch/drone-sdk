@@ -44,11 +44,11 @@ namespace commandstatemachine
             using namespace boost::sml;
 
             return make_transition_table(
-                *state<Idle> + event<TaskAssigned> = state<Busy>,            ///< Idle → Busy on task assignment
-                state<Busy> + event<TaskAssigned> = state<Busy>,///<get over ride mission
-                state<Busy> + event<TaskCompleted> = state<Idle>, ///< Busy → MissionComplete on task completion
-                state<Busy> + event<TaskAborted> = state<MissionAbort>,      ///< Busy → MissionAbort on task aborted
-                state<MissionAbort> + event<TaskCompleted> = state<Idle>     ///< MissionAbort → Idle for next assignment
+                *state<Idle> + event<TaskAssigned> = state<Busy>,        ///< Idle → Busy on task assignment
+                state<Busy> + event<TaskAssigned> = state<Busy>,         ///< get over ride mission
+                state<Busy> + event<TaskCompleted> = state<Idle>,        ///< Busy → MissionComplete on task completion
+                state<Busy> + event<TaskAborted> = state<MissionAbort>,  ///< Busy → MissionAbort on task aborted
+                state<MissionAbort> + event<TaskCompleted> = state<Idle> ///< MissionAbort → Idle for next assignment
             );
         }
     };
@@ -61,6 +61,8 @@ namespace commandstatemachine
     {
     public:
         using StateChangeSignal = boost::signals2::signal<void(drone_sdk::CommandStatus)>;
+        using MissionChangeSignal = boost::signals2::signal<void(drone_sdk::CurrentMission)>;
+        
         using PathWayPoint = boost::signals2::signal<void(drone_sdk::Location)>;
 
         using CurrenitDestinationSignal = boost::signals2::signal<void(drone_sdk::Location)>;
@@ -79,7 +81,7 @@ namespace commandstatemachine
          * @param pathDestinations An optional queue of destinations for a path mission.
          * @throws std::invalid_argument If parameters are invalid for the mission type.
          */
-        drone_sdk::FlightControllerStatus  handleTaskAssigned(
+        drone_sdk::FlightControllerStatus handleTaskAssigned(
             drone_sdk::CurrentMission newMission,
             const std::optional<drone_sdk::Location> &singleDestination = std::nullopt,
             const std::optional<std::queue<drone_sdk::Location>> &pathDestinations = std::nullopt);
@@ -133,6 +135,7 @@ namespace commandstatemachine
         boost::signals2::connection subscribeToLandingSignal(const LandingSignal::slot_type &subscriber);
 
         boost::signals2::connection subscribeToTakingOffSignal(const TakingOffSignal::slot_type &subscriber);
+        boost::signals2::connection subscribeToMission(const MissionChangeSignal::slot_type &subscriber);
 
         /**
          * @brief Retrieves the current command state.
@@ -186,7 +189,7 @@ namespace commandstatemachine
         CurrenitDestinationSignal m_currDestinationSignal;
         LandingSignal m_landingSignal;
         TakingOffSignal m_takingOffSignal;
-
+        MissionChangeSignal m_missionChangeSignal;
         drone_sdk::CurrentMission m_currMission;     ///< Current mission type.
         drone_sdk::Location m_currLocation;          ///< Current GPS location of the drone.
         drone_sdk::Location m_destination;           ///< Current destination for the mission.

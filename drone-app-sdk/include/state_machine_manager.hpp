@@ -28,6 +28,9 @@ public:
         // subscribe flight state machine to commands
         m_commandSM.subscribeToState([this](drone_sdk::CommandStatus commandState)
                                      { m_flightSM.handleCommandStateChange(commandState); });
+        // subscribe flight state machine to commands
+        m_commandSM.subscribeToMission([this](drone_sdk::CurrentMission newMission)
+                                       { m_flightSM.handleNewMission(newMission); });
     }
     // Subscription functions for external components
     void subscribeToGpsUpdates(std::function<void(const drone_sdk::Location &, const drone_sdk::SignalQuality)> callback)

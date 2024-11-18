@@ -31,7 +31,9 @@ namespace flightstatemachine
     struct LandEvent
     {
     }; ///< Trrigerd when preformd landing after go home/ safty violation.
-
+    struct ReturnHomeEvent
+    {
+    };
     /**
      * @brief States for the FlightStateMachine
      * These represent the possible states the drone can be in.
@@ -78,7 +80,8 @@ namespace flightstatemachine
                 state<Airborne> + event<HoverEvent> = state<Hover>,
                 state<Hover> + event<AirborneEvent> = state<Airborne>,
                 state<Airborne> + event<TaskCompleteEvent> = state<Hover>,
-                
+                state<Airborne> + event<ReturnHomeEvent> = state<ReturnHome>,
+
                 state<Landed> + event<SafetyViolationEvent> = state<EmergencyLand>,
                 state<Takeoff> + event<SafetyViolationEvent> = state<EmergencyLand>,
                 state<Airborne> + event<SafetyViolationEvent> = state<EmergencyLand>,
@@ -122,34 +125,12 @@ namespace flightstatemachine
         }
 
     private:
-        /**
-         * @brief Trigger a takeoff event.
-         */
         void triggerTakeoff();
-
-        /**
-         * @brief Trigger an airborne event.
-         */
         void triggerAirborne();
-
-        /**
-         * @brief Trigger a hover event.
-         */
         void triggerHover();
-
-        /**
-         * @brief Notify the state machine that a task has been completed.
-         */
         void triggerTaskComplete();
-
-        /**
-         * @brief Notify the state machine of a safety violation.
-         */
         void triggerSafetyViolation();
-
-        /**
-         * @brief Handle emergency landing procedures.
-         */
+        void triggerReturnHome();
         void handleEmergencyLand();
         void triggerLand();
 
