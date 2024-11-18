@@ -75,11 +75,21 @@ public:
 
     drone_sdk::Location getHome()
     {
-        return  m_commandSM.getHomebase();
+        return m_commandSM.getHomebase();
     }
+
     void subscribeToCurrentDestination(std::function<void(drone_sdk::Location)> callback)
     {
         m_commandSM.subscribeToCurrentDestination(callback);
+    }
+
+    drone_sdk::FlightControllerStatus newTask(
+        drone_sdk::CurrentMission newMission,
+        const std::optional<drone_sdk::Location> &singleDestination,
+        const std::optional<std::queue<drone_sdk::Location>> &pathDestinations)
+    {
+        // Handle task assignment based on available parameters
+        return m_commandSM.handleTaskAssigned(newMission, singleDestination, pathDestinations);
     }
 
 private:

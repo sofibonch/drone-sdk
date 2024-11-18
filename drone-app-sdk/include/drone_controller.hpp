@@ -11,16 +11,13 @@ public:
     DroneController();
     ~DroneController();
  
-bool goTo(const drone_sdk::Location & location);
-//bool followPath(const std::vector<drone_sdk::Location> &path);
-bool abortMission();
-bool hover();
+ drone_sdk::FlightControllerStatus goTo(const drone_sdk::Location & location);
+// drone_sdk::FlightControllerStatus followPath(const std::/queue<drone_sdk::Location> &path);
+ drone_sdk::FlightControllerStatus abortMission();
+ drone_sdk::FlightControllerStatus hover();
 
-//HardwareMonitor& getHardwareMonitor() { return m_hwMonitor; }
 private:
-//path should be tracked here? no
     HardwareMonitor m_hwMonitor;                // Monitors hardware components (e.g., GPS, Link)
-    //should subscribe to the machines
     StateMachineManager m_stateMachineManager;  // Manages state transitions for the drone
     CommandController m_commandController;      // Manages commands
 };

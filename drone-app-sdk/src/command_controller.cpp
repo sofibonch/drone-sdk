@@ -8,11 +8,11 @@ void CommandController::start(drone_sdk::Location home)
     m_onLand = true;
 }
 
-drone_sdk::FlightControllerStatus CommandController::hover(const drone_sdk::Location &cur_location)
+drone_sdk::FlightControllerStatus CommandController::hover()
 {
     // Command the flight controller to hover
     // Hover at the current location
-    return m_flightControllerHandler.goTo(cur_location);
+    return m_flightControllerHandler.goTo(m_currentLocation);
 }
 
 drone_sdk::FlightControllerStatus CommandController::abortMission()

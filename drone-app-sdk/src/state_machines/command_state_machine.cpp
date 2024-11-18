@@ -10,7 +10,7 @@ namespace commandstatemachine
         : m_SM(), m_currentState(drone_sdk::CommandStatus::IDLE), m_currMission(drone_sdk::CurrentMission::HOVER) {}
 
     // Handle task assignment
-    void CommandStateMachine::handleTaskAssigned(
+    drone_sdk::FlightControllerStatus CommandStateMachine::handleTaskAssigned(
         drone_sdk::CurrentMission newMission,
         const std::optional<drone_sdk::Location> &singleDestination,
         const std::optional<std::queue<drone_sdk::Location>> &pathDestinations)
@@ -22,19 +22,18 @@ namespace commandstatemachine
 
         if (singleDestination && pathDestinations)
         {
-            throw std::invalid_argument(
-                "Both singleDestination and pathDestinations cannot be provided simultaneously");
+            return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
         }
         switch (newMission)
         {
         case drone_sdk::CurrentMission::GOTO:
             if (!singleDestination)
             {
-                throw std::invalid_argument("GOTO mission requires a single destination");
+                return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
             }
             takingOffCheck();
-            m_destination=singleDestination;
-            //updateCurrentDestination(*singleDestination);//updateing new destintion ompy on path
+            m_destination = *singleDestination;
+            // updateCurrentDestination(*singleDestination);//updateing new destintion ompy on path
             break;
 
         case drone_sdk::CurrentMission::HOME:
@@ -43,22 +42,23 @@ namespace commandstatemachine
         case drone_sdk::CurrentMission::HOVER:
             if (singleDestination || pathDestinations)
             {
-                throw std::invalid_argument(" hover do not requires parameters");
+                return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
             }
             takingOffCheck();
             break;
         case drone_sdk::CurrentMission::PATH:
             if (!pathDestinations)
             {
-                throw std::invalid_argument("PATH mission requires a queue of destinations");
+                return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
             }
             m_pathQueue = *pathDestinations;
             m_destination = m_pathQueue.front();
             m_pathQueue.pop();
             break;
         default:
-            throw std::invalid_argument("Unknown mission type");
+            return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
         }
+        return drone_sdk::FlightControllerStatus::SUCCESS;
     }
 
     // Handle task aborted due to safety

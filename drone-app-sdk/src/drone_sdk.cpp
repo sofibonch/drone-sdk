@@ -1,43 +1,39 @@
 #include "drone_sdk.hpp"
-#include "drone_controller.hpp"
 #include <iostream>
 
 DroneSDK::DroneSDK()
     : m_DroneController(std::make_unique<DroneController>()) {}
 
 DroneSDK::DroneSDK(DroneSDK&&) noexcept = default;
+
 DroneSDK& DroneSDK::operator=(DroneSDK&&) noexcept = default;
 
 DroneSDK::~DroneSDK() {
     // Cleanup is handled automatically by the unique_ptr
 }
 
-bool DroneSDK::goTo(const drone_sdk::Location & location){
+drone_sdk::FlightControllerStatus DroneSDK::goTo(const drone_sdk::Location &location)
+{
+    // Forward the command to DroneController
     return m_DroneController->goTo(location);
 }
 
-//bool DroneSDK::followPath(const std::vector<drone_sdk::Location> &path){
-//    return m_DroneController->followPath(path);
-//}
-bool DroneSDK::abortMission(){
+drone_sdk::FlightControllerStatus DroneSDK::abortMission()
+{
+    // Forward the command to DroneController
     return m_DroneController->abortMission();
 }
-bool DroneSDK::hover(){
+
+drone_sdk::FlightControllerStatus DroneSDK::hover()
+{
+    // Forward the command to DroneController
     return m_DroneController->hover();
 }
 
-//void DroneSDK::subscribeToGpsUpdates(drone_sdk::GpsCallback::Type gpsCallback) {
-//    m_DroneController.subscribeToGpsUpdates(gpsCallback);
+//void DroneSDK::start() {
+//   
 //}
 //
-//void DroneSDK::subscribeToLinkUpdates(drone_sdk::LinkCallback::Type linkCallback) {
-//    m_DroneController.subscribeToLinkUpdates(linkCallback);
+//void DroneSDK::stop() {
+//
 //}
-
-void DroneSDK::start() {
-   
-}
-
-void DroneSDK::stop() {
-    //m_DroneController.stop();  // Stop monitoring and threads
-}

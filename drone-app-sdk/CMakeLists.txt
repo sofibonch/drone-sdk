@@ -260,3 +260,36 @@ target_link_libraries(command_controller_test PRIVATE
     gmock
     gmock_main
 )
+
+
+#---drone controller test---
+
+add_executable(drone_controller_test
+    tests/unit/drone_controller_test.cpp
+    src/drone_controller.cpp
+    src/command_controller.cpp
+    src/state_machines/safety_state_machine.cpp
+    src/state_machines/command_state_machine.cpp
+    src/state_machines/flight_state_machine.cpp
+    )
+
+# Include directories and link libraries for the SafetyStateMachine test
+target_include_directories(drone_controller_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/flight-controller/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
+    ${PROJECT_SOURCE_DIR}/gps/include
+    ${PROJECT_SOURCE_DIR}/link/include
+    ${Boost_INCLUDE_DIRS}
+    external/googletest/include
+)
+
+target_link_libraries(drone_controller_test PRIVATE
+    gtest
+    gtest_main
+    flight-controller
+    gps
+    link
+    mocks
+    gmock
+    gmock_main
+)

@@ -78,7 +78,7 @@ namespace commandstatemachine
          * @param pathDestinations An optional queue of destinations for a path mission.
          * @throws std::invalid_argument If parameters are invalid for the mission type.
          */
-        void handleTaskAssigned(
+        drone_sdk::FlightControllerStatus  handleTaskAssigned(
             drone_sdk::CurrentMission newMission,
             const std::optional<drone_sdk::Location> &singleDestination = std::nullopt,
             const std::optional<std::queue<drone_sdk::Location>> &pathDestinations = std::nullopt);
