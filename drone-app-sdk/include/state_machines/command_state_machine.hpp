@@ -6,7 +6,7 @@
 #include <queue>
 #include <optional>
 #include "icd.hpp"
-
+#include <iostream>
 namespace commandstatemachine
 {
 
@@ -45,6 +45,7 @@ namespace commandstatemachine
 
             return make_transition_table(
                 *state<Idle> + event<TaskAssigned> = state<Busy>,            ///< Idle → Busy on task assignment
+                state<Busy> + event<TaskAssigned> = state<Busy>,///<get over ride mission
                 state<Busy> + event<TaskCompleted> = state<Idle>, ///< Busy → MissionComplete on task completion
                 state<Busy> + event<TaskAborted> = state<MissionAbort>,      ///< Busy → MissionAbort on task aborted
                 state<MissionAbort> + event<TaskCompleted> = state<Idle>     ///< MissionAbort → Idle for next assignment
@@ -117,7 +118,7 @@ namespace commandstatemachine
         boost::signals2::connection subscribeToState(const StateChangeSignal::slot_type &subscriber);
 
         /**
-         * @brief Subscribe to getting destination updates on path
+         * @brief Subscribe to getting destination updates on path/ just an inner system funciton!
          * @param subscriber A callback function to be triggered on state change.
          * @return A connection object for managing the subscription.
          */

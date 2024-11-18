@@ -33,7 +33,6 @@ namespace commandstatemachine
             }
             takingOffCheck();
             m_destination = *singleDestination;
-            // updateCurrentDestination(*singleDestination);//updateing new destintion ompy on path
             break;
 
         case drone_sdk::CurrentMission::HOME:
@@ -45,6 +44,8 @@ namespace commandstatemachine
                 return drone_sdk::FlightControllerStatus::INVALID_COMMAND;
             }
             takingOffCheck();
+            m_destination= m_currLocation;
+            handleTaskCompleted();
             break;
         case drone_sdk::CurrentMission::PATH:
             if (!pathDestinations)
@@ -104,6 +105,7 @@ namespace commandstatemachine
         m_currLocation = newLocation;
         if (m_currLocation == m_destination)
         {
+            //std::cout<<"reached destination!!!!"<<m_currLocation.altitude<<std::endl;
             switch (m_currMission)
             {
             case drone_sdk::CurrentMission::GOTO:
@@ -169,7 +171,7 @@ namespace commandstatemachine
     // Update current state
     void CommandStateMachine::updateCurrentState()
     {
-        drone_sdk::CommandStatus prevState = m_currentState;
+        //       drone_sdk::CommandStatus prevState = m_currentState;
 
         if (m_SM.is(state<Idle>))
         {
@@ -184,10 +186,10 @@ namespace commandstatemachine
             m_currentState = drone_sdk::CommandStatus::MISSION_ABORT;
         }
 
-        if (m_currentState != prevState)
-        {
-            m_stateChangeSignal(m_currentState);
-        }
+        //        if (m_currentState != prevState)
+        //        {
+        m_stateChangeSignal(m_currentState);
+        //        }
     }
 
     // Update current mission

@@ -11,7 +11,7 @@ class CommandController
 public:
     CommandController() = default;
     ~CommandController() = default;
-
+    
     void start(drone_sdk::Location home);
     drone_sdk::FlightControllerStatus goTo(const drone_sdk::Location &location);
     drone_sdk::FlightControllerStatus abortMission();
