@@ -233,7 +233,7 @@ target_link_libraries(manager_sm_test PRIVATE
 )
 
 
-#---vommand controller test---
+#---Command controller test---
 add_executable(command_controller_test
     tests/unit/command_controller_test.cpp
     src/command_controller.cpp
@@ -245,6 +245,7 @@ target_include_directories(command_controller_test PRIVATE
     ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
     ${PROJECT_SOURCE_DIR}/gps/include
     ${PROJECT_SOURCE_DIR}/link/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/tests/mocks
     ${Boost_INCLUDE_DIRS}
     external/googletest/include
 )
@@ -261,7 +262,12 @@ target_link_libraries(command_controller_test PRIVATE
     gmock_main
 )
 
-
+# Force Debug build type for tests
+set_target_properties(command_controller_test PROPERTIES
+    COMPILE_DEFINITIONS "DEBUG"
+    CMAKE_BUILD_TYPE Debug
+)
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the build type" FORCE)
 #---drone controller test---
 
 add_executable(drone_controller_test
@@ -279,6 +285,7 @@ target_include_directories(drone_controller_test PRIVATE
     ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
     ${PROJECT_SOURCE_DIR}/gps/include
     ${PROJECT_SOURCE_DIR}/link/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/tests/mocks
     ${Boost_INCLUDE_DIRS}
     external/googletest/include
 )
@@ -292,4 +299,10 @@ target_link_libraries(drone_controller_test PRIVATE
     mocks
     gmock
     gmock_main
+)
+
+# Force Debug build type for tests
+set_target_properties(command_controller_test PROPERTIES
+    COMPILE_DEFINITIONS "DEBUG"
+    CMAKE_BUILD_TYPE Debug
 )

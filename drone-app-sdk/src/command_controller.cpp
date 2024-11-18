@@ -10,8 +10,7 @@ void CommandController::start(drone_sdk::Location home)
 
 drone_sdk::FlightControllerStatus CommandController::hover()
 {
-    // Command the flight controller to hover
-    // Hover at the current location
+    // Command the flight controller to hover at the current location
     return m_flightControllerHandler.goTo(m_currentLocation);
 }
 
@@ -39,6 +38,7 @@ drone_sdk::FlightControllerStatus CommandController::path(drone_sdk::Location fi
     m_onPath = true;
     return m_flightControllerHandler.goTo(firstPoint);
 }
+
 void CommandController::handleDestinationChange(drone_sdk::Location newDestination)
 {
     m_flightControllerHandler.goTo(newDestination);
@@ -50,7 +50,7 @@ void CommandController::handleCommandState(drone_sdk::CommandStatus commandState
     {
         m_flightControllerHandler.land();
     }
-    // finished doing the path
+    // Finished doing the path
     if (commandState == drone_sdk::CommandStatus::IDLE && m_onPath)
     {
         m_onPath = false;
