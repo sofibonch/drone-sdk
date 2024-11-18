@@ -117,7 +117,7 @@ namespace commandstatemachine
         boost::signals2::connection subscribeToState(const StateChangeSignal::slot_type &subscriber);
 
         /**
-         * @brief Subscribe to current preformed mission.
+         * @brief Subscribe to getting destination updates on path
          * @param subscriber A callback function to be triggered on state change.
          * @return A connection object for managing the subscription.
          */

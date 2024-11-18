@@ -33,7 +33,8 @@ namespace commandstatemachine
                 throw std::invalid_argument("GOTO mission requires a single destination");
             }
             takingOffCheck();
-            updateCurrentDestination(*singleDestination);
+            m_destination=singleDestination;
+            //updateCurrentDestination(*singleDestination);//updateing new destintion ompy on path
             break;
 
         case drone_sdk::CurrentMission::HOME:

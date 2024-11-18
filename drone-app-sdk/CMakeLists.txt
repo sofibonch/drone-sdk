@@ -231,3 +231,32 @@ target_link_libraries(manager_sm_test PRIVATE
     link
     mocks
 )
+
+
+#---vommand controller test---
+add_executable(command_controller_test
+    tests/unit/command_controller_test.cpp
+    src/command_controller.cpp
+    )
+
+# Include directories and link libraries for the SafetyStateMachine test
+target_include_directories(command_controller_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/flight-controller/include
+    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include
+    ${PROJECT_SOURCE_DIR}/gps/include
+    ${PROJECT_SOURCE_DIR}/link/include
+    ${Boost_INCLUDE_DIRS}
+    external/googletest/include
+)
+target_link_libraries(command_controller_test PRIVATE gtest gmock gtest_main gmock_main)
+
+target_link_libraries(command_controller_test PRIVATE
+    gtest
+    gtest_main
+    flight-controller
+    gps
+    link
+    mocks
+    gmock
+    gmock_main
+)

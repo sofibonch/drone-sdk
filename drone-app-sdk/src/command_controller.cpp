@@ -1,58 +1,78 @@
 #include "command_controller.hpp"
-#include <iostream>
-void CommandController::start(StateMachineManager * stateMachineManager)
+#include "icd.hpp"
+
+void CommandController::start(drone_sdk::Location home)
 {
-    m_stateMachineManager=stateMachineManager;
-}
-// Command to go to a specified location
-bool CommandController::goTo(const drone_sdk::Location& location) {
-    //preforming the set of action to become airborn to preform the goto action, use try catch?
-    if (m_cur_flight_state == drone_sdk::FlightState::LANDED) {
-       // drone_sdk::Altitude::altitude alt = location.altitude;
-        //if (m_flightControllerHandler.arm() != drone_sdk::FlightControllerStatus::SUCCESS ||
-        //    m_flightControllerHandler.takeOff(alt) != drone_sdk::FlightControllerStatus::SUCCESS) {
-        //    std::cerr << "Failed to arm or take off." << std::endl;
-            return false;
-        //}
-    }
-    //if in emergency state block the goto command
-    else if(m_cur_flight_state == drone_sdk::FlightState::EMERGENCY_LAND){
-        return false;
-    }
-    // Go directly to the specified location
-    return m_flightControllerHandler.goTo(location) == drone_sdk::FlightControllerStatus::SUCCESS;
+    m_homebase = home;
+    m_onPath = false;
+    m_onLand = true;
 }
 
-// Command to follow a path of multiple locations using queue
-//bool CommandController::followPath(const std::queue<drone_sdk::Location>& path) {
-   // m_pathQueue = path;  // Load the queue with path points
-   // if (!m_pathQueue.empty()) {
-   //     return goTo(m_pathQueue.front());  // Start with the first location in the queue
-   // }
-//    return false;
-//}
-
-// Command to abort mission and return to home base
-bool CommandController::abortMission() {
-
-    if (m_flightControllerHandler.goTo(m_homebase) != drone_sdk::FlightControllerStatus::SUCCESS) {
-        std::cerr << "Failed to abort mission and return to home base." << std::endl;
-        return false;
-    }
-    return true;
+drone_sdk::FlightControllerStatus CommandController::hover(const drone_sdk::Location &cur_location)
+{
+    // Command the flight controller to hover
+    // Hover at the current location
+    return m_flightControllerHandler.goTo(cur_location);
 }
 
-// Command to hover at the current location
-bool CommandController::hover() {
-    if (m_cur_flight_state == drone_sdk::FlightState::TAKEOFF ||
-        m_cur_flight_state == drone_sdk::FlightState::AIRBORNE ||
-        m_cur_flight_state == drone_sdk::FlightState::HOVER) {
-        if (m_flightControllerHandler.goTo(m_cur_location) != drone_sdk::FlightControllerStatus::SUCCESS) {
-            std::cerr << "Failed to hover at current location." << std::endl;
-            return false;
+drone_sdk::FlightControllerStatus CommandController::abortMission()
+{
+    // Abort mission by notifying the state machine and flight controller
+    return m_flightControllerHandler.goHome();
+}
+
+drone_sdk::FlightControllerStatus CommandController::goTo(const drone_sdk::Location &newLocation)
+{
+    if (m_onLand)
+    {
+        drone_sdk::FlightControllerStatus flightStatus = takingOff(newLocation);
+        if (flightStatus != drone_sdk::FlightControllerStatus::SUCCESS)
+        {
+            return flightStatus;
         }
-        return true;
     }
-    std::cerr << "Cannot hover. Current flight state does not permit hovering." << std::endl;
-    return false;
+    return m_flightControllerHandler.goTo(newLocation);
+}
+
+drone_sdk::FlightControllerStatus CommandController::path(drone_sdk::Location firstPoint)
+{
+    m_onPath = true;
+    return m_flightControllerHandler.goTo(firstPoint);
+}
+void CommandController::handleDestinationChange(drone_sdk::Location newDestination)
+{
+    m_flightControllerHandler.goTo(newDestination);
+}
+
+void CommandController::handleCommandState(drone_sdk::CommandStatus commandState)
+{
+    if (commandState == drone_sdk::CommandStatus::MISSION_ABORT)
+    {
+        m_flightControllerHandler.land();
+    }
+    // finished doing the path
+    if (commandState == drone_sdk::CommandStatus::IDLE && m_onPath)
+    {
+        m_onPath = false;
+    }
+}
+
+drone_sdk::FlightControllerStatus CommandController::takingOff(drone_sdk::Location location)
+{
+    drone_sdk::FlightControllerStatus flightStatus = m_flightControllerHandler.arm();
+
+    if (flightStatus == drone_sdk::FlightControllerStatus::SUCCESS)
+    {
+        return m_flightControllerHandler.takeOff(location);
+    }
+    else
+    {
+        return flightStatus;
+    }
+}
+
+void CommandController::onCommandStateChanged(drone_sdk::CommandStatus commandState)
+{
+    // Handle any additional logic needed when the command state changes
+    handleCommandState(commandState);
 }

@@ -19,8 +19,8 @@ public:
     }
 
     // Command to take off
-    drone_sdk::FlightControllerStatus takeOff(const drone_sdk::Altitude & altitude) {
-        return convertResponse(m_flightController.takeOff(altitude.altitude));
+    drone_sdk::FlightControllerStatus takeOff(const drone_sdk::Location & location) {
+        return convertResponse(m_flightController.takeOff(location.altitude));
     }
 
     // Command to land

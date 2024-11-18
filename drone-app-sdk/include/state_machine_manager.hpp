@@ -23,8 +23,8 @@ public:
     {
         hwMonitor->subscribeToGpsUpdates([this](const drone_sdk::Location &location, const drone_sdk::SignalQuality quality)
                                          {
-                                             m_safetySM.handleGpsSignal(quality); // Ensure proper mapping
-                                             m_commandSM.handleGpsLocationUpdate(location);         // Update Command State Machine
+                                             m_safetySM.handleGpsSignal(quality);           // Ensure proper mapping
+                                             m_commandSM.handleGpsLocationUpdate(location); // Update Command State Machine
                                          });
 
         // Subscribe to Link updates
@@ -67,10 +67,19 @@ public:
     {
         m_commandSM.subscribeToPathWaypoint(callback);
     }
-    
-    void SetHome(drone_sdk::Location newHome)
+
+    void setHome(drone_sdk::Location newHome)
     {
         m_commandSM.setHomebase(newHome);
+    }
+
+    drone_sdk::Location getHome()
+    {
+        return  m_commandSM.getHomebase();
+    }
+    void subscribeToCurrentDestination(std::function<void(drone_sdk::Location)> callback)
+    {
+        m_commandSM.subscribeToCurrentDestination(callback);
     }
 
 private:
