@@ -1,4 +1,6 @@
+
 #include "state_machines/safety_state_machine.hpp"
+#include "icd.hpp"
 #include <gtest/gtest.h>
 #include <boost/signals2.hpp>
 #include <boost/bind/bind.hpp>
@@ -20,8 +22,6 @@ public:
 
     safetyState getLastGpsState() const { return lastGpsState; }
     safetyState getLastLinkState() const { return lastLinkState; }
-
-
 
 private:
     safetyState lastGpsState = safetyState::GPS_HEALTH;
@@ -50,65 +50,58 @@ TEST_F(SafetyStateMachineTest, InitialState) {
 
 // Section: Tests for handleGpsSignal()
 TEST_F(SafetyStateMachineTest, HandleGpsSignalNotHealthy) {
-    GpsSignal gpsSignal{SignalQuality::NO_SIGNAL};
-    sm.handleGpsSignal(gpsSignal);
+    SignalQuality gpsSignal = SignalQuality::NO_SIGNAL;
+    sm.handleGpsSignal(gpsSignal);  // GPS should become not healthy
 
     EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_NOT_HEALTHY);
     EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_NOT_HEALTHY);
-    
 }
 
 TEST_F(SafetyStateMachineTest, HandleGpsSignalHealthy) {
-    GpsSignal gpsSignal{SignalQuality::EXCELLENT};
-    sm.handleGpsSignal(gpsSignal);
+    SignalQuality gpsSignal{SignalQuality::EXCELLENT};
+    sm.handleGpsSignal(gpsSignal);  // GPS should be healthy
 
     EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_HEALTH);
     EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_HEALTH);
-    
 }
 
 // Section: Tests for handleLinkSignal()
 TEST_F(SafetyStateMachineTest, HandleLinkSignalDisconnected) {
-    LinkSignal linkSignal{SignalQuality::NO_SIGNAL};
-    sm.handleLinkSignal(linkSignal);
+    SignalQuality linkSignal{SignalQuality::NO_SIGNAL};
+    sm.handleLinkSignal(linkSignal);  // Link should become disconnected
 
     EXPECT_EQ(sm.getCurrentLinkState(), safetyState::NOT_CONNECTED);
     EXPECT_EQ(observer.getLastLinkState(), safetyState::NOT_CONNECTED);
-    
 }
 
 TEST_F(SafetyStateMachineTest, HandleLinkSignalConnected) {
-    LinkSignal linkSignal{SignalQuality::EXCELLENT};
-    sm.handleLinkSignal(linkSignal);
+    SignalQuality linkSignal{SignalQuality::EXCELLENT};
+    sm.handleLinkSignal(linkSignal);  // Link should be connected
 
     EXPECT_EQ(sm.getCurrentLinkState(), safetyState::CONNECTED);
     EXPECT_EQ(observer.getLastLinkState(), safetyState::CONNECTED);
-    
 }
 
 // Section: Tests for transitions from GpsNotHealthy to GpsHealthy
 TEST_F(SafetyStateMachineTest, GpsStateRestored) {
-    GpsSignal gpsSignalLost{SignalQuality::NO_SIGNAL};
+    SignalQuality gpsSignalLost{SignalQuality::NO_SIGNAL};
     sm.handleGpsSignal(gpsSignalLost);  // Lost signal -> GPS_NOT_HEALTHY
     EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_NOT_HEALTHY);
 
-    GpsSignal gpsSignalRestored{SignalQuality::EXCELLENT};
-    sm.handleGpsSignal(gpsSignalRestored);  // Restored signal -> GPS_HEALTH
-    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_HEALTH);
-    EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_HEALTH);
-    
+    SignalQuality gpsSignalRestored{SignalQuality::EXCELLENT};
+    sm.handleGpsSignal(gpsSignalRestored);  //dont allow restore signal -> GPS_HEALTH
+    EXPECT_EQ(sm.getCurrentGpsState(), safetyState::GPS_NOT_HEALTHY);
+    EXPECT_EQ(observer.getLastGpsState(), safetyState::GPS_NOT_HEALTHY);
 }
 
 // Section: Tests for transitions from ConnectionDisconnected to ConnectionConnected
 TEST_F(SafetyStateMachineTest, LinkStateRestored) {
-    LinkSignal linkSignalLost{SignalQuality::NO_SIGNAL};
+    SignalQuality linkSignalLost{SignalQuality::NO_SIGNAL};
     sm.handleLinkSignal(linkSignalLost);  // Lost connection -> NOT_CONNECTED
     EXPECT_EQ(sm.getCurrentLinkState(), safetyState::NOT_CONNECTED);
 
-    LinkSignal linkSignalRestored{SignalQuality::EXCELLENT};
-    sm.handleLinkSignal(linkSignalRestored);  // Restored connection -> CONNECTED
-    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::CONNECTED);
-    EXPECT_EQ(observer.getLastLinkState(), safetyState::CONNECTED);
-    
+    SignalQuality linkSignalRestored{SignalQuality::EXCELLENT};
+    sm.handleLinkSignal(linkSignalRestored);  // dont allow restore connection -> CONNECTED
+    EXPECT_EQ(sm.getCurrentLinkState(), safetyState::NOT_CONNECTED);
+    EXPECT_EQ(observer.getLastLinkState(), safetyState::NOT_CONNECTED);
 }
-

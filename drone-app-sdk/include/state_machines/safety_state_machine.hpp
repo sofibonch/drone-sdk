@@ -73,14 +73,15 @@ namespace safetystatemachine
                 // GPS signal transitions
                 *state<GpsHealthy> + event<GpsSignal>[([](const GpsSignal &gs)
                                                        { return gs.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] = state<GpsNotHealthy>,
-                state<GpsNotHealthy> + event<GpsSignal>[([](const GpsSignal &gs)
-                                                         { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] = state<GpsHealthy>,
-
+                // state<GpsNotHealthy> + event<GpsSignal>[([](const GpsSignal &gs)
+                //                                          { return gs.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] = state<GpsHealthy>,
+                //dont allow reconnecting
                 // Link signal transitions
                 *state<ConnectionConnected> + event<LinkSignal>[([](const LinkSignal &ls)
-                                                                 { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] = state<ConnectionDisconnected>,
-                state<ConnectionDisconnected> + event<LinkSignal>[([](const LinkSignal &ls)
-                                                                   { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] = state<ConnectionConnected>);
+                                                                 { return ls.quality == drone_sdk::SignalQuality::NO_SIGNAL; })] = state<ConnectionDisconnected>
+                // state<ConnectionDisconnected> + event<LinkSignal>[([](const LinkSignal &ls)
+                //                                                    { return ls.quality != drone_sdk::SignalQuality::NO_SIGNAL; })] = state<ConnectionConnected>);
+            );
         }
     };
 
@@ -140,6 +141,7 @@ namespace safetystatemachine
          * @brief Update the current states and notify subscribers if changes occur.
          */
         void updateCurrentState();
+
     private:
         boost::sml::sm<Safety_SM> m_SM;     /**< The underlying state machine object. */
         drone_sdk::safetyState m_gpsState;  /**< Current GPS state. */

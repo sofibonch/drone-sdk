@@ -2,7 +2,6 @@
 
 namespace safetystatemachine
 {
-
     SafetyStateMachine::SafetyStateMachine()
         : m_SM(),
           m_gpsState(drone_sdk::safetyState::GPS_HEALTH),
@@ -11,15 +10,27 @@ namespace safetystatemachine
     // Handle GPS signal events
     void SafetyStateMachine::handleGpsSignal(const drone_sdk::SignalQuality &gpsSignal)
     {
-        m_SM.process_event(gpsSignal == drone_sdk::SignalQuality::NO_SIGNAL ? drone_sdk::safetyState::GPS_NOT_HEALTHY : drone_sdk::safetyState::GPS_HEALTH);
+        drone_sdk::safetyState prevGpsState = m_gpsState;
+        GpsSignal signal(gpsSignal);
+        m_SM.process_event(signal);
         updateCurrentState();
+        if (m_gpsState != prevGpsState)
+        {
+            m_gpsStateChangeSignal(m_gpsState);
+        }
     }
 
     // Handle Link signal events
     void SafetyStateMachine::handleLinkSignal(const drone_sdk::SignalQuality &linkSignal)
     {
-        m_SM.process_event(linkSignal == drone_sdk::SignalQuality::NO_SIGNAL ? drone_sdk::safetyState::NOT_CONNECTED : drone_sdk::safetyState::CONNECTED);
+        drone_sdk::safetyState prevLinkState = m_linkState;
+        LinkSignal signal(linkSignal);
+        m_SM.process_event(signal);
         updateCurrentState();
+        if (m_linkState != prevLinkState)
+        {
+            m_linkStateChangeSignal(m_linkState);
+        }
     }
 
     // Subscribe to GPS state changes
@@ -49,8 +60,6 @@ namespace safetystatemachine
     // Update current states and notify if changes occur
     void SafetyStateMachine::updateCurrentState()
     {
-        drone_sdk::safetyState prevGpsState = m_gpsState;
-        drone_sdk::safetyState prevLinkState = m_linkState;
 
         if (m_SM.is(boost::sml::state<GpsHealthy>))
         {
@@ -68,16 +77,6 @@ namespace safetystatemachine
         else if (m_SM.is(boost::sml::state<ConnectionDisconnected>))
         {
             m_linkState = drone_sdk::safetyState::NOT_CONNECTED;
-        }
-
-        if (m_gpsState != prevGpsState)
-        {
-            m_gpsStateChangeSignal(m_gpsState);
-        }
-
-        if (m_linkState != prevLinkState)
-        {
-            m_linkStateChangeSignal(m_linkState);
         }
     }
 
