@@ -14,13 +14,24 @@ class FlightStateChangeObserver
 public:
     void onStateChanged(drone_sdk::FlightState newState)
     {
+        // there is an option of updating from landed to hover in achain with takeoff
+        if (times_updated > 0)
+        {
+            prevState = lastState;
+        }
         lastState = newState;
+        ++times_updated;
     }
 
     drone_sdk::FlightState getLastState() const { return lastState; }
+    drone_sdk::FlightState getPrevState() const { return prevState; }
+
+    size_t getTransitionCount() { return times_updated; }
 
 private:
+    drone_sdk::FlightState prevState = drone_sdk::FlightState::LANDED;
     drone_sdk::FlightState lastState = drone_sdk::FlightState::LANDED;
+    size_t times_updated = 0;
 };
 
 class FlightStateMachineTest : public ::testing::Test
@@ -43,12 +54,30 @@ TEST_F(FlightStateMachineTest, InitialState)
     EXPECT_EQ(fsm.getCurrentState(), drone_sdk::FlightState::LANDED);
 }
 
+//-- tests for handeling landed mission --
+TEST_F(FlightStateMachineTest, HandleTaskLandedToGoto)
+{
+    // Simulate a task complete mission (could transition to Return Home or similar)
+    drone_sdk::CurrentMission taskCompleteMission = drone_sdk::CurrentMission::GOTO; // Correct enum for task completion
+    fsm.handleNewMission(taskCompleteMission);
+
+    EXPECT_EQ(fsm.getCurrentState(), drone_sdk::FlightState::AIRBORNE);
+    EXPECT_EQ(observer.getLastState(), drone_sdk::FlightState::AIRBORNE);
+    EXPECT_EQ(observer.getPrevState(), drone_sdk::FlightState::TAKEOFF);
+    EXPECT_TRUE(observer.getTransitionCount()== 2);
+}
+
+//-- tests for handeling TakeOff mission --
+//-- tests for handeling AirBorn mission --
+//-- tests for handeling Hover mission --
+//-- tests for handeling emergancy mission --
+//-- tests for handeling home mission --
 
 TEST_F(FlightStateMachineTest, HandleAirborneMission)
 {
     // Simulate a mission that transitions to Airborne
     drone_sdk::CurrentMission airborneMission = drone_sdk::CurrentMission::GOTO; // Correct use of enum
-    fsm.handleNewMission(airborneMission);     // Transition from Takeoff to Airborne
+    fsm.handleNewMission(airborneMission);                                       // Transition from Takeoff to Airborne
 
     EXPECT_EQ(fsm.getCurrentState(), drone_sdk::FlightState::AIRBORNE);
     EXPECT_EQ(observer.getLastState(), drone_sdk::FlightState::AIRBORNE);
@@ -58,7 +87,7 @@ TEST_F(FlightStateMachineTest, HandleHoverMission)
 {
     // Simulate a mission that transitions to Hover
     drone_sdk::CurrentMission hoverMission = drone_sdk::CurrentMission::HOVER; // Correct use of enum
-    fsm.handleNewMission(hoverMission);     // Transition from Airborne to Hover
+    fsm.handleNewMission(hoverMission);                                        // Transition from Airborne to Hover
 
     EXPECT_EQ(fsm.getCurrentState(), drone_sdk::FlightState::HOVER);
     EXPECT_EQ(observer.getLastState(), drone_sdk::FlightState::HOVER);
@@ -94,4 +123,3 @@ TEST_F(FlightStateMachineTest, GotoMissionTransition)
     EXPECT_EQ(fsm.getCurrentState(), drone_sdk::FlightState::AIRBORNE); // Should not transition
     EXPECT_EQ(observer.getLastState(), drone_sdk::FlightState::AIRBORNE);
 }
-

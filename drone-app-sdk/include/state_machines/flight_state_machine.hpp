@@ -78,7 +78,8 @@ namespace flightstatemachine
                 state<Airborne> + event<HoverEvent> = state<Hover>,
                 state<Hover> + event<AirborneEvent> = state<Airborne>,
                 state<Airborne> + event<TaskCompleteEvent> = state<Hover>,
-
+                
+                state<Landed> + event<SafetyViolationEvent> = state<EmergencyLand>,
                 state<Takeoff> + event<SafetyViolationEvent> = state<EmergencyLand>,
                 state<Airborne> + event<SafetyViolationEvent> = state<EmergencyLand>,
                 state<Hover> + event<SafetyViolationEvent> = state<EmergencyLand>,

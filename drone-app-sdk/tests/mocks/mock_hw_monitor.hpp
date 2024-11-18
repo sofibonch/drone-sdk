@@ -9,13 +9,13 @@
 #include "mock_link_handler.hpp" // Include the mock Link handler
 #include "icd.hpp"
 
-class MockHardwareMonitor {
+class mockHwMonitor {
 public:
     // Constructor initializes the mock handlers
-    MockHardwareMonitor()
+    mockHwMonitor()
         : m_running(false) {}
 
-    ~MockHardwareMonitor() {
+    ~mockHwMonitor() {
         stop();
     }
 

@@ -323,6 +323,8 @@ TEST_F(CommandStateMachineTest, LongWayGoToMissionWithHoverInterrupt)
     EXPECT_EQ(status, FlightControllerStatus::SUCCESS);
 }
 
+//Hover testing
+
 // Test PATH mission waypoint updates with mock GPS (direct update, no callback)
 // TEST_F(CommandStateMachineTest, HandlePathWaypointUpdate)
 //{
