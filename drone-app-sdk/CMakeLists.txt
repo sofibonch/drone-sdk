@@ -302,7 +302,8 @@ target_link_libraries(drone_controller_test PRIVATE
 )
 
 # Force Debug build type for tests
-set_target_properties(command_controller_test PROPERTIES
+set_target_properties(drone_controller_test PROPERTIES
     COMPILE_DEFINITIONS "DEBUG"
     CMAKE_BUILD_TYPE Debug
 )
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the build type" FORCE)

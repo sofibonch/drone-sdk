@@ -1,58 +1,141 @@
+#ifndef DRONE_CONTROLLER_TEST_HPP
+#define DRONE_CONTROLLER_TEST_HPP
+
 #include <gtest/gtest.h>
 #include "drone_controller.hpp"
-#include "../mocks/mock_hw_monitor.hpp"
-#include "icd.hpp"
+#include "mock_hw_monitor.hpp"
 
-class DroneControllerTest : public ::testing::Test {
+// TestObserver class to track the subscription callback calls
+class TestObserver {
+public:
+    void onGpsSignalStateUpdate(drone_sdk::safetyState state) {
+        m_lastGpsSignalState = state;
+        m_gpsSignalStateCalled = true;
+    }
+
+    void onLinkSignalStateUpdate(drone_sdk::safetyState state) {
+        m_lastLinkSignalState = state;
+        m_linkSignalStateCalled = true;
+    }
+
+    void onGpsLocationUpdate(const drone_sdk::Location &location, const drone_sdk::SignalQuality &quality) {
+        m_lastLocation = location;
+        m_lastSignalQuality = quality;
+        m_gpsLocationCalled = true;
+    }
+
+    void onFlightStateUpdate(drone_sdk::FlightState state) {
+        m_lastFlightState = state;
+        m_flightStateCalled = true;
+    }
+
+    void onCommandStateUpdate(drone_sdk::CommandStatus status) {
+        m_lastCommandStatus = status;
+        m_commandStateCalled = true;
+    }
+
+    void onWaypointUpdate(const drone_sdk::Location &location) {
+        m_lastWaypoint = location;
+        m_waypointCalled = true;
+    }
+
+    // Reset flags for testing
+    void reset() {
+        m_gpsSignalStateCalled = false;
+        m_linkSignalStateCalled = false;
+        m_gpsLocationCalled = false;
+        m_flightStateCalled = false;
+        m_commandStateCalled = false;
+        m_waypointCalled = false;
+    }
+
+    bool m_gpsSignalStateCalled = false;
+    bool m_linkSignalStateCalled = false;
+    bool m_gpsLocationCalled = false;
+    bool m_flightStateCalled = false;
+    bool m_commandStateCalled = false;
+    bool m_waypointCalled = false;
+
+    drone_sdk::safetyState m_lastGpsSignalState;
+    drone_sdk::safetyState m_lastLinkSignalState;
+    drone_sdk::Location m_lastLocation;
+    drone_sdk::SignalQuality m_lastSignalQuality;
+    drone_sdk::FlightState m_lastFlightState;
+    drone_sdk::CommandStatus m_lastCommandStatus;
+    drone_sdk::Location m_lastWaypoint;
+};
+
+// Test class for DroneController
+class DroneControllerSelfLoadingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        // Initialize the mock hardware monitor and drone controller
-        m_mockHardwareMonitor = std::make_unique<MockHardwareMonitor>();
-        m_droneController = std::make_unique<DroneController>();
+    DroneController m_droneController;
 
-        // Start the hardware monitor
-        m_mockHardwareMonitor->start();
+    void SetUp() override {
     }
 
     void TearDown() override {
-        // Stop the hardware monitor after the test
-        m_mockHardwareMonitor->stop();
     }
+    
+    // Function to test if the subscriptions are correctly set up
+    void InitSubscriptions(TestObserver& observer) {
+        // Subscribe the observer functions to the DroneController signals
+        m_droneController.subscribeToGpsSignalState([&observer](drone_sdk::safetyState state) {
+            observer.onGpsSignalStateUpdate(state);
+        });
 
-    std::unique_ptr<MockHardwareMonitor> m_mockHardwareMonitor;
-    std::unique_ptr<DroneController> m_droneController;
+        m_droneController.subscribeToLinkSignalState([&observer](drone_sdk::safetyState state) {
+            observer.onLinkSignalStateUpdate(state);
+        });
+
+        m_droneController.subscribeToGpsLocation([&observer](const drone_sdk::Location &location, const drone_sdk::SignalQuality &quality) {
+            observer.onGpsLocationUpdate(location, quality);
+        });
+
+        m_droneController.subscribeToFlightState([&observer](drone_sdk::FlightState state) {
+            observer.onFlightStateUpdate(state);
+        });
+
+        m_droneController.subscribeToCommandState([&observer](drone_sdk::CommandStatus status) {
+            observer.onCommandStateUpdate(status);
+        });
+
+        m_droneController.subscribeToWaypoint([&observer](drone_sdk::Location location) {
+            observer.onWaypointUpdate(location);
+        });
+    }
 };
 
-// Test for the goTo command (moving vertically first, then horizontally)
-TEST_F(DroneControllerTest, GoToCommandVerticalThenHorizontal) {
-    // Simulate the GPS locations with increasing altitude first
-    drone_sdk::Location targetLocation = {10.0, 10.0, 100.0}; // Target: xy=10,10, z=100 (altitude)
-    
-    // Create a mock path with the vertical progression first
-    std::queue<drone_sdk::Location> mockPath;
-    for (int z = 0; z <= 100; z += 10) {  // Increase altitude slowly in steps of 10
-        mockPath.push({0.0, 0.0, static_cast<double>(z)});
-    }
+// Test case to verify that the subscriptions work correctly
+TEST_F(DroneControllerSelfLoadingTest, InitSubscriptionsTest) {
+    TestObserver observer;
 
-    // Now push the horizontal destination (xy values)
-    mockPath.push(targetLocation);
+    // Initialize subscriptions
+    InitSubscriptions(observer);
 
-    // Load the mock data into the hardware monitor
-    m_mockHardwareMonitor->loadMockGpsData(mockPath);
-    
-    // Subscribe to GPS updates to handle location updates
-    m_mockHardwareMonitor->subscribeToGpsUpdates([this](const drone_sdk::Location& location, const drone_sdk::SignalQuality&) {
-        // You can perform checks on the location here if needed
-        if (location.altitude == 100.0) {  // If the altitude is reached
-            // Now test horizontal progression to target location
-            EXPECT_EQ(location.latitude, 10.0);  // Use latitude instead of x
-            EXPECT_EQ(location.longitude, 10.0);  // Use longitude instead of y
-        }
-    });
+    // Simulate updates to verify subscriptions
+#ifdef DEBUG_MODE
+    std::queue<drone_sdk::Location> locations;
+    std::queue<drone_sdk::SignalQuality> gpsQualities;
+    std::queue<drone_sdk::SignalQuality> linkQualities;
 
-    // Execute the goTo command to start the movement
-    auto status = m_droneController->goTo(targetLocation);
-    
-    // Check that the status is success (this may vary depending on your implementation)
-    EXPECT_EQ(status, drone_sdk::FlightControllerStatus::SUCCESS);
+    locations.push({40.7128, -74.0060, 10.0}); // Example: New York
+    gpsQualities.push(drone_sdk::SignalQuality::EXCELLENT);
+    linkQualities.push(drone_sdk::SignalQuality::GOOD);
+
+    m_droneController.loadMockGpsData(locations, gpsQualities);
+    m_droneController.loadMockLinkData(linkQualities);
+    m_droneController.runMockData();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait for mock updates to propagate
+#endif
+
+    // Verify if observer callbacks were triggered
+    EXPECT_TRUE(observer.m_gpsSignalStateCalled);
+    EXPECT_TRUE(observer.m_linkSignalStateCalled);
+    EXPECT_TRUE(observer.m_gpsLocationCalled);
+
+    // Check last values (example values may vary depending on test setup)
+    EXPECT_EQ(observer.m_lastLocation.latitude, 40.7128);
+    EXPECT_EQ(observer.m_lastSignalQuality, drone_sdk::SignalQuality::EXCELLENT);
 }
+#endif // DRONE_CONTROLLER_TEST_HPP
