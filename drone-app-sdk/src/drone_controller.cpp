@@ -4,7 +4,12 @@
 DroneController::DroneController()
     : m_stateMachineManager(), m_commandController()
 {
+#ifdef DEBUG_MODE
+
+#else
     m_hwMonitor.start();
+#endif
+
     m_stateMachineManager.start();
     m_commandController.start(m_stateMachineManager.getHome());
     m_hwMonitor.subscribeToGpsUpdates([this](const drone_sdk::Location &location, const drone_sdk::SignalQuality &signalQuality)
@@ -110,7 +115,7 @@ drone_sdk::FlightControllerStatus DroneController::abortMission()
             drone_sdk::Location{}, // Empty location for abort mission
             std::nullopt           // pathDestinations is not used, so pass std::nullopt
         );
-    
+
         if (machineStat != drone_sdk::FlightControllerStatus::SUCCESS)
         {
             // If the new task fails, throw an exception to trigger rollback
@@ -225,5 +230,10 @@ void DroneController::loadMockLinkData(const std::queue<drone_sdk::SignalQuality
 void DroneController::runMockData()
 {
     m_hwMonitor.start(); // Start processing the mock data
+}
+
+void DroneController::stopMockData()
+{
+    m_hwMonitor.stop(); // Start processing the mock data
 }
 #endif

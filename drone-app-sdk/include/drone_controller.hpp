@@ -39,6 +39,7 @@ public:
     void loadMockGpsData(const std::queue<drone_sdk::Location> &locations, const std::queue<drone_sdk::SignalQuality> &qualities);
     void loadMockLinkData(const std::queue<drone_sdk::SignalQuality> &qualities);
     void runMockData(); // Starts the mock monitor to process the loaded data
+    void stopMockData();
 #endif
 private:
 #ifdef DEBUG_MODE

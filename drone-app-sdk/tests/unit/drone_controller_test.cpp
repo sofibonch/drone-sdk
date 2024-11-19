@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "drone_controller.hpp"
 #include "mock_hw_monitor.hpp"
-
+#include <iostream>
 // TestObserver class to track the subscription callback calls
 class TestObserver
 {
@@ -118,35 +118,83 @@ TEST_F(DroneControllerSelfLoadingTest, InitSubscriptionsTest)
 
     // Initialize subscriptions
     InitSubscriptions(observer);
-
     // Simulate updates to verify subscriptions
 #ifdef DEBUG_MODE
     std::queue<drone_sdk::Location> locations;
     std::queue<drone_sdk::SignalQuality> gpsQualities;
     std::queue<drone_sdk::SignalQuality> linkQualities;
-
     locations.push({1, 2, 3});
     gpsQualities.push(drone_sdk::SignalQuality::EXCELLENT);
     linkQualities.push(drone_sdk::SignalQuality::EXCELLENT);
-
     locations.push({1, 2.5, 3});
     gpsQualities.push(drone_sdk::SignalQuality::EXCELLENT);
     linkQualities.push(drone_sdk::SignalQuality::NO_SIGNAL);
-
+    
     m_droneController.loadMockGpsData(locations, gpsQualities);
+    
     m_droneController.loadMockLinkData(linkQualities);
+    
     m_droneController.runMockData();
     
 //    std::this_thread::sleep_for(std::chrono::milliseconds(150)); // Wait for mock updates to propagate
 #endif
     // Verify if observer callbacks were triggered
-    std::this_thread::sleep_for(std::chrono::milliseconds(450)); // Wait for mock updates to propagate
-    EXPECT_FALSE(observer.m_gpsSignalStateCalled);
+    std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Wait for mock updates to propagate
+    m_droneController.stopMockData();
+    EXPECT_TRUE(observer.m_gpsSignalStateCalled);
+    
     EXPECT_TRUE(observer.m_linkSignalStateCalled);
+    
     EXPECT_TRUE(observer.m_gpsLocationCalled);
-
-     EXPECT_EQ(observer.m_lastLocation.latitude, 1);
-     EXPECT_EQ(observer.m_lastGpsSignalState, drone_sdk::safetyState::NOT_CONNECTED);
+    
+    EXPECT_EQ(observer.m_lastLocation.latitude, 1);
+    EXPECT_EQ(observer.m_lastGpsSignalState, drone_sdk::safetyState::GPS_NOT_HEALTHY);
+    
 }
 
+// Test case to verify that the command goto basic
+//TEST_F(DroneControllerSelfLoadingTest, GoToTest)
+//{
+//    TestObserver observer;
+//
+//    // Initialize subscriptions
+//    InitSubscriptions(observer);
+//
+//    // Simulate updates to verify subscriptions
+//    drone_sdk::Location loc{1, 3, 3};
+//    m_droneController.goTo(loc);
+//#ifdef DEBUG_MODE
+//    std::queue<drone_sdk::Location> locations;
+//    std::queue<drone_sdk::SignalQuality> gpsQualities;
+//    std::queue<drone_sdk::SignalQuality> linkQualities;
+//
+//    locations.push({1, 2, 3});
+//    gpsQualities.push(drone_sdk::SignalQuality::EXCELLENT);
+//    linkQualities.push(drone_sdk::SignalQuality::EXCELLENT);
+//
+//    locations.push({1, 2.5, 3});
+//    gpsQualities.push(drone_sdk::SignalQuality::EXCELLENT);
+//    linkQualities.push(drone_sdk::SignalQuality::NO_SIGNAL);
+//
+//    locations.push({1, 3, 3});
+//    gpsQualities.push(drone_sdk::SignalQuality::EXCELLENT);
+//    linkQualities.push(drone_sdk::SignalQuality::NO_SIGNAL);
+//
+//    m_droneController.loadMockGpsData(locations, gpsQualities);
+//    m_droneController.loadMockLinkData(linkQualities);
+//    m_droneController.runMockData();
+//
+//    std::this_thread::sleep_for(std::chrono::milliseconds(150)); // Wait for mock updates to propagate
+//#endif
+//    // Verify if observer callbacks were triggered
+//    std::this_thread::sleep_for(std::chrono::milliseconds(450)); // Wait for mock updates to propagate
+//    EXPECT_FALSE(observer.m_gpsSignalStateCalled);
+//    EXPECT_TRUE(observer.m_linkSignalStateCalled);
+//    EXPECT_TRUE(observer.m_gpsLocationCalled);
+//
+//    EXPECT_EQ(observer.m_lastLocation.latitude, 1);
+//    EXPECT_EQ(observer.m_lastGpsSignalState, drone_sdk::safetyState::NOT_CONNECTED);
+//    EXPECT_EQ(observer.m_lastCommandStatus, drone_sdk::CommandStatus::IDLE);
+//    m_droneController.stopMockData();
+//}
 #endif // DRONE_CONTROLLER_TEST_HPP
