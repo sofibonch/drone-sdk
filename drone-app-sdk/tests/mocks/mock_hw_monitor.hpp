@@ -8,12 +8,14 @@
 #include "mock_gps_handler.hpp"  // Include the mock GPS handler
 #include "mock_link_handler.hpp" // Include the mock Link handler
 #include "icd.hpp"
-
+#include <iostream>
 class MockHwMonitor {
 public:
     // Constructor initializes the mock handlers
     MockHwMonitor()
-        : m_running(false) {}
+        : m_running(false) {
+            std::cout<<"created mock monitor"<<std::endl;
+        }
 
     ~MockHwMonitor() {
         stop();
@@ -25,6 +27,7 @@ public:
         m_pollingThread = std::thread([this]() {
             while (m_running) {
                 // Simulate fetching data from the queues
+                
                 updateGpsData();
                 updateLinkData();
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -67,6 +70,7 @@ private:
             // Get the next Location and SignalQuality
             drone_sdk::Location location = m_mockGpsData.front();
             drone_sdk::SignalQuality signalQuality = m_mockSignalQuality.front();
+           
             m_mockGpsData.pop();
 
             // Trigger the GPS update signal with the mocked data

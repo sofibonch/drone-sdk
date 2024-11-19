@@ -11,7 +11,7 @@
 #include "hw_monitor.hpp" // Use actual HardwareMonitor otherwise
 #endif
 
-#include <queue>// for path, should go to icd
+#include <queue> // for path, should go to icd
 #include <functional>
 
 class DroneController
@@ -25,7 +25,6 @@ public:
     drone_sdk::FlightControllerStatus abortMission();
     drone_sdk::FlightControllerStatus hover();
     drone_sdk::FlightControllerStatus path(std::queue<drone_sdk::Location>);
-    
 
     // Subscription functions
     void subscribeToGpsSignalState(std::function<void(drone_sdk::safetyState)> callback);
@@ -34,6 +33,7 @@ public:
     void subscribeToFlightState(std::function<void(drone_sdk::FlightState)> callback);
     void subscribeToCommandState(std::function<void(drone_sdk::CommandStatus)> callback);
     void subscribeToWaypoint(std::function<void(drone_sdk::Location)> callback);
+
 #ifdef DEBUG_MODE
     // Functions for loading and running mock data in debug mode
     void loadMockGpsData(const std::queue<drone_sdk::Location> &locations, const std::queue<drone_sdk::SignalQuality> &qualities);

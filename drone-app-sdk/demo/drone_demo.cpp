@@ -85,7 +85,7 @@ int main()
     }
 
     // Simulate waiting to demonstrate subscription updates
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     std::cout << "Demo finished." << std::endl;
     return 0;

@@ -110,7 +110,7 @@ drone_sdk::FlightControllerStatus DroneController::abortMission()
             drone_sdk::Location{}, // Empty location for abort mission
             std::nullopt           // pathDestinations is not used, so pass std::nullopt
         );
-
+    
         if (machineStat != drone_sdk::FlightControllerStatus::SUCCESS)
         {
             // If the new task fails, throw an exception to trigger rollback
@@ -190,7 +190,7 @@ void DroneController::subscribeToLinkSignalState(std::function<void(drone_sdk::s
 
 void DroneController::subscribeToGpsLocation(std::function<void(const drone_sdk::Location &, const drone_sdk::SignalQuality)> callback)
 {
-    m_stateMachineManager.subscribeToGpsUpdates(callback);
+    m_hwMonitor.subscribeToGpsUpdates(callback);
 }
 
 void DroneController::subscribeToFlightState(std::function<void(drone_sdk::FlightState)> callback)
