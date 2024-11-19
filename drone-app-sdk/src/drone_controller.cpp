@@ -9,9 +9,10 @@ DroneController::DroneController()
     m_commandController.start(m_stateMachineManager.getHome());
     m_hwMonitor.subscribeToGpsUpdates([this](const drone_sdk::Location &location, const drone_sdk::SignalQuality &signalQuality)
                                       {
-                                          m_commandController.updateCurrentLocation(location);
-                                          (void)signalQuality; // Cast to void to mark it as unused
-                                      });
+                                          m_stateMachineManager.handleGpsUpdate(location, signalQuality);
+                                          m_commandController.updateCurrentLocation(location); });
+    m_hwMonitor.subscribeToLinkUpdates([this](const drone_sdk::SignalQuality &signalQuality)
+                                       { m_stateMachineManager.handleLinkUpdate(signalQuality); });
 }
 
 DroneController::~DroneController()

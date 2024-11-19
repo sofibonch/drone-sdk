@@ -14,8 +14,8 @@ void demoFlightControllerHandler() {
     }
 
     std::cout << "Taking off..." << std::endl;
-    drone_sdk::Altitude alt {2.1};
-    status = flightControllerHandler.takeOff(alt);
+    drone_sdk::Location loc {2,3,4};
+    status = flightControllerHandler.takeOff(loc);
     if (status == drone_sdk::FlightControllerStatus::SUCCESS) {
         std::cout << "Drone is airborne!" << std::endl;
     } else {

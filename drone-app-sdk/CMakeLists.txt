@@ -17,29 +17,10 @@ add_subdirectory(external/googletest)
 include_directories(external/googletest/include)
 
 # Add source files for your target
-set(SOURCE_FILES
-    src/drone_app_sdk.cpp
-
-)
-
-# Define the executable target for the drone app SDK
-add_executable(drone-app-sdk ${SOURCE_FILES})
-
-# Link the drone-app-sdk target with the sub libraries
-target_link_libraries(drone-app-sdk PRIVATE flight-controller gps link)
-
-# Include dirs for drone-app-sdk
-target_include_directories(drone-app-sdk PRIVATE
-    ${PROJECT_SOURCE_DIR}/flight-controller/include
-    ${PROJECT_SOURCE_DIR}/gps/include
-    ${PROJECT_SOURCE_DIR}/link/include
-    ${PROJECT_SOURCE_DIR}/drone-app-sdk/include # Include drone-app-sdk headers
-    ${Boost_INCLUDE_DIRS} # Include Boost headers (if available)
-)
-
-message(STATUS "External include directory: ${PROJECT_SOURCE_DIR}/external")
-message(STATUS "Boost include directories: ${Boost_INCLUDE_DIRS}")
-
+#set(SOURCE_FILES
+#    src/drone_app_sdk.cpp
+#
+#)
 
 #---demos---
 

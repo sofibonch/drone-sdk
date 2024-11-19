@@ -5,11 +5,6 @@ DroneSDK::DroneSDK()
 {
 }
 
-DroneSDK::DroneSDK(DroneSDK &&) noexcept = default;
-DroneSDK &DroneSDK::operator=(DroneSDK &&) noexcept = default;
-
-DroneSDK::~DroneSDK() = default;
-
 drone_sdk::FlightControllerStatus DroneSDK::goTo(const drone_sdk::Location &location)
 {
     return m_DroneController->goTo(location);
